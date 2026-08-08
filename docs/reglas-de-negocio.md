@@ -27,9 +27,26 @@ Fuente: tarifas y normativa oficiales de Arabella Golf Mallorca (catálogo 2026)
 | `premium_spa` | Premium + SPA | Premium | 6.050 € |
 | `premium_buggy` | Premium + Buggy | Premium | 6.450 € |
 | `premium_spa_buggy` | Premium + SPA + Buggy | Premium | 7.050 € |
-| `monthly_premium` | Premium Mensual | Monthly | 725 €/mes (alta) · 860 €/mes (resto) |
+| `monthly_premium` | Premium Mensual | Monthly | 725 €/mes (alta) · 860 €/mes (resto) — ver regla abajo |
 
 SM y SQ incluyen uso ilimitado de su Driving Range. Todos los precios incluyen IVA (21%).
+
+### Modalidad `monthly_premium` (Premium Mensual) — incluida en v1
+
+Producto mes a mes (no cuota anual), categoría `Monthly`. **No admite ningún descuento de la cascada.**
+
+- **Tarifa alta (725 €/mes):** Enero, Julio, Agosto, Diciembre.
+- **Tarifa estándar (860 €/mes):** resto de meses del año.
+- Se puede contratar por **1, 2 o 3 meses** (máximo 3) a partir de una fecha de inicio.
+- Para cada uno de esos meses:
+  - Si el periodo cae limpio dentro de un único mes natural → **precio automático** por consulta directa de la tarifa de ese mes.
+  - Si el periodo cruza el límite entre dos meses naturales:
+    - Si ambos meses tienen la **misma tarifa** → sigue siendo automático (no hay ambigüedad real).
+    - Si tienen **tarifas distintas** → la aplicación presenta ambas opciones (alta/estándar) y **el agente comercial elige manualmente** cuál aplicar. No hay regla automática de días para este caso — es una decisión humana en el momento de la venta.
+- La tarifa aplicada a cada mes (y si fue una elección manual por cruce de temporada) se registra y se incluye en la exportación a Excel (capítulo 7).
+- Relacionado pero fuera de esto: el ajuste manual de cuota especial por dirección (`specialPrice`) es un mecanismo aparte, para un capítulo posterior — no se mezcla con esta lógica.
+
+**Ejemplo (caso simple, sin cruce):** se contratan Agosto + Septiembre (2 meses completos, cada uno cae limpio en su propio mes natural). Agosto es tarifa alta (725 €), Septiembre es tarifa estándar (860 €) → se cobran **por separado y se suman: 725 + 860 = 1.585 €**. No se promedia ni se aplica una única tarifa a los dos meses — cada mes contratado es una unidad de precio independiente.
 
 ## 2. Cascada de descuentos
 
@@ -61,6 +78,14 @@ Abono `sm` (Golf Son Muntaner, 4.400 €) con los descuentos Lunes a Viernes + A
 | 3 | Descuento Familiar (10%) | 2.805 × 0,10 | −280,50 € | 2.524,50 € |
 
 **Ahorro total: 1.875,50 € — Subtotal tras descuentos: 2.524,50 €.** Usar como test de referencia (golden test) para el motor de cascada en el capítulo 2: si la implementación no reproduce exactamente estos números, hay un error en el orden o en la lógica de cascada.
+
+### Aclaración y caso de prueba — descuento `referral`
+
+El `referral` es distinto a los otros 9 descuentos: su base de cálculo **no es el subtotal de la cuota que se está calculando**, sino el importe contratado por la persona referida (un dato externo a esta cotización). El 10% resultante sí se resta de la cuota propia del abonado que recomienda, como un paso más de la cascada.
+
+**Ejemplo:** el Abonado A recomienda al Abonado B. El Abonado B contrata una cuota de 5.000 €. El Abonado A recibe un descuento de `5.000 × 0,10 = 500 €` sobre su propia cuota — no sobre los 5.000 € del referido.
+
+Implementación recomendada (capítulo 2): el motor de cascada acepta un parámetro opcional `referralAmount` (el importe contratado por el referido); si `referral` está entre los descuentos seleccionados, su importe se calcula como `referralAmount × 0,10` en vez de `subtotalActual × 0,10`, pero se resta del subtotal en curso exactamente igual que cualquier otro paso de la cascada.
 
 Categoría `Monthly`: no admite ningún descuento.
 

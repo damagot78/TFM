@@ -91,3 +91,39 @@ src/test/setup.ts
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` y `pnpm build` verificados en verde (independientemente, no solo por el propio proceso que los ejecutó).
+
+---
+
+## 2. Capítulo 2 — Motor de cuota base y cascada de descuentos
+
+### Qué se construyó
+
+Dos piezas de lógica de negocio, cada una con su propio ciclo TDD (rojo → verde → refactor), verificadas contra [`docs/reglas-de-negocio.md`](./reglas-de-negocio.md):
+
+1. **`calculateQuote`** — el motor de cascada de descuentos: recibe una modalidad y una lista de descuentos ya seleccionados, valida que la combinación sea legal (máximo 3 descuentos, restricción de categoría Premium/No-Premium, matriz de incompatibilidades) y aplica cada descuento en el orden fijo de la cascada, no en el orden en que se seleccionaron.
+2. **`calculateMonthlyPremiumPrice`** — la calculadora de precio de la modalidad `monthly_premium`, que se cobra mes a mes según temporada (alta/estándar) en vez de con una tarifa anual fija.
+
+*Cómo contarlo en el vídeo:* aquí empieza el TDD "de verdad" del proyecto — cada función se escribió primero como un test que fallaba, y solo después el código mínimo para pasarlo (Módulo 4 del máster).
+
+### Por qué dos motores separados, no uno
+
+`monthly_premium` es la única modalidad de categoría `Monthly`, y la especificación dice explícitamente que esa categoría **no admite ningún descuento**. Meter su lógica de temporada dentro del motor de cascada habría acoplado dos algoritmos que no comparten ni datos ni reglas: uno reparte un precio fijo entre hasta 3 descuentos porcentuales encadenados, el otro decide qué tarifa mensual aplica según en qué mes natural cae cada mes contratado. Separarlos en dos funciones puras, cada una con su propio archivo y sus propios tests, evita una función con dos responsabilidades y hace que cada una se pueda leer, testear y defender de forma independiente.
+
+### El test dorado (golden test) del motor de cascada
+
+La especificación incluye un caso ya validado con datos reales: abono `sm` (4.400 €) con Lunes a Viernes (15%) + Abono Tarde (25%) + Familiar (10%) debe dar exactamente **2.524,50 €**. Ese caso se escribió como el primer test del motor — si la implementación no reproduce esos números exactos, hay un error de orden o de lógica en la cascada, no solo un test que falla.
+
+*Cómo contarlo en el vídeo:* usar un caso de negocio real y ya verificado como primer test (en vez de inventar un ejemplo) da mucha más confianza de que el motor calcula lo que el club realmente cobra, no solo lo que "parece correcto".
+
+### Decisiones a poder defender
+
+- **Redondeo a 2 decimales en cada paso de la cascada** (`shared/utils/money.ts`, `roundCurrency`): sin este redondeo, algunos porcentajes producen errores de punto flotante que se arrastran y crecen paso a paso (p. ej. `0.1 + 0.2` no da `0.3` exacto en JavaScript). Redondear tras cada paso, igual que hace la tabla de referencia de la especificación, evita ese arrastre. Se extrajo a `shared/` porque la usan ambos motores de este capítulo, y la usará también el módulo de extras en el capítulo 3.
+- **Resultado como `{ success: true, ... } | { success: false, errors: string[] }` en vez de lanzar excepciones:** una combinación de descuentos inválida (más de 3, incompatibles, restringida por categoría) es un resultado esperado del negocio, no un fallo del programa. Modelarlo como un tipo de retorno explícito obliga a quien llama a la función a manejar ambos casos en tiempo de compilación, y le da a la futura UI (capítulo 4) el motivo exacto para mostrárselo al agente.
+- **`referral` con base de cálculo externa:** es el único descuento de los 10 cuyo porcentaje no se aplica sobre el subtotal de la propia cuota, sino sobre el importe contratado por la persona referida. El motor acepta un parámetro opcional `referralAmount`; si `referral` está seleccionado sin ese importe, o con un importe no positivo, el cálculo se rechaza explícitamente en vez de asumir un valor por defecto silencioso.
+- **`monthly_premium` sin precio fijo en el catálogo (`price: null`):** en vez de inventarle un precio anual representativo (que induciría a error si alguien lo usa sin darse cuenta), el motor de cascada rechaza explícitamente cualquier intento de calcularlo, señalando que debe usarse `calculateMonthlyPremiumPrice`. Es una barrera de diseño, no solo una validación: hace imposible mezclar los dos algoritmos por error.
+- **Cálculo de temporada sin aritmética real de fechas:** para saber si un "mes contratado" cae limpio en un mes natural o cruza dos, solo hace falta saber en qué mes(es) del año cae, no la fecha exacta de fin — así se evita usar `Date` para sumar meses, que en JavaScript normaliza mal los días de fin de mes (p. ej. "31 de enero + 1 mes" no da un 31 de febrero, que no existe).
+- **Cruces de temporada con tarifas distintas sin regla automática:** la especificación es explícita en que esto es una decisión humana del agente, no un algoritmo de días. El motor modela ese caso como `success: false` con un mensaje claro; la UI del capítulo 4 lo convertirá en un selector para el agente, y el motor vuelve a llamarse con la elección ya indicada.
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (21 tests: 12 del motor de cascada + 8 de `monthly_premium` + 1 de humo del capítulo 1) y `pnpm build` verificados en verde.

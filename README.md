@@ -18,16 +18,16 @@ Una calculadora guiada y explicada: no solo devuelve el importe final, también 
 
 - Motor de cuota base + cascada de descuentos (orden y matriz de incompatibilidades según [`docs/reglas-de-negocio.md`](./docs/reglas-de-negocio.md)) + validación de edad.
 - Extras con exclusividad de grupo (custodia de palos / buggy).
-- Un solo modo de pago (anual), interfaz en español.
+- Un solo modo de pago anual para las modalidades `Standard`/`Premium`, más la modalidad `monthly_premium` (mes a mes, hasta 3 meses, tarifa por temporada — ver `docs/reglas-de-negocio.md`). Interfaz en español.
 - Identificación de personal (PIN, lista fija de 3-4 agentes), validada en servidor — registra quién realiza cada cotización.
-- Exportación a Excel de las cotizaciones generadas (agente, modalidad, descuentos, extras, edad, total).
+- Exportación a Excel de las cotizaciones generadas (agente, modalidad, descuentos, extras, edad, total, y para `monthly_premium` la tarifa aplicada por mes).
 - Actualizador de tarifas: edición del precio de los conceptos del catálogo fijo (no se añaden/eliminan productos ni reglas).
 
 ### Roadmap más allá del v1
 
 Fuera del núcleo v1, pero contempladas como extensión si el tiempo lo permite (orden de prioridad; se recorta desde el final si el plazo aprieta):
 
-1. Modos de pago fraccionado/temporal.
+1. Modos de pago fraccionado/temporal para las modalidades `Standard`/`Premium`.
 2. Firma digital del abonado.
 3. Soporte multi-idioma (EN/DE).
 4. Generación de documento/PDF imprimible.
