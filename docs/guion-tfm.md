@@ -210,3 +210,44 @@ Al escribir el primer test de un componente con varias renderizaciones en el mis
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` (130 tests: 75 nuevos de este capítulo) y `pnpm build` verificados en verde. Cobertura: 100% funciones/líneas/statements, 99,5% ramas (umbral 80%). Probado además en un navegador real (Chromium headless vía Playwright, sin backend): caso dorado completo con un extra añadido, y el cruce de temporada de `monthly_premium` resuelto manualmente — sin errores de consola inesperados.
+
+---
+
+## 5. Capítulo 5 — Identificación de personal (PIN) y función serverless
+
+### Qué se construyó
+
+La primera pieza de backend del proyecto: `api/validate-pin.ts`, una función serverless de Vercel que valida el PIN de un agente sin exponer nunca esa lógica al cliente, más la pantalla de identificación y el "gate" que bloquea el acceso a la calculadora hasta que un agente se identifica. Es el único punto del proyecto con lógica de seguridad real (Módulos 6 y 9 del máster), y se trató con el mismo rigor TDD que el resto: la lógica pura del endpoint (validación de payload, comparación de PIN) se escribió y testeó antes que el propio endpoint HTTP.
+
+*Cómo contarlo en el vídeo:* hasta este capítulo todo el proyecto era 100% cliente. Aquí se cruza una frontera de confianza real —datos que nunca deben llegar al navegador— y eso cambia las reglas: ya no basta con que la lógica sea correcta, tiene que ser además imposible de eludir desde fuera.
+
+### La especificación de seguridad no la inventó el asistente
+
+Antes de escribir una sola línea de este capítulo, `docs/reglas-de-negocio.md` se amplió con una especificación de seguridad completa y explícita para el endpoint (§6): contrato exacto de petición/respuesta, ocho reglas obligatorias (solo POST, validar forma antes de comparar, `timingSafeEqual`, mensajes de error genéricos, nunca loguear el PIN, fail secure, CORS restrictivo, PIN solo en variables de entorno de servidor), y una decisión de alcance ya razonada sobre rate limiting. El trabajo de este capítulo fue implementar esa especificación fielmente y detectar sus consecuencias no obvias, no diseñar la política de seguridad desde cero.
+
+*Cómo contarlo en el vídeo:* en un proyecto real, la política de seguridad de un endpoint de autenticación no es algo que se improvisa mientras se programa — se decide antes, con las reglas escritas, y el código se audita contra esas reglas. Aquí se siguió ese mismo orden.
+
+### Un fallo de diseño propio, encontrado antes de escribir el endpoint
+
+La regla 4 de la especificación es explícita: un PIN incorrecto y un `agentId` inexistente deben dar **la misma respuesta** (401, mismo mensaje) — si no, alguien podría enumerar qué agentes existen probando IDs y mirando si cambia el código de estado o el mensaje. La primera versión de `parseValidatePinPayload` rechazaba directamente un `agentId` que no estuviera en el catálogo, lo que habría producido un 400 para "agente inexistente" y un 401 para "PIN incorrecto" — exactamente la distinción que la regla prohíbe. Se detectó al releer la especificación con la función ya escrita, antes de llegar al endpoint, y se corrigió moviendo esa comprobación a `isPinValid` (que ya tenía que ser indistinguible por diseño).
+
+*Cómo contarlo en el vídeo:* es un ejemplo concreto de por qué conviene volver a leer la especificación de seguridad contra el propio código antes de dar un módulo por cerrado — el fallo no estaba en la lógica de negocio (la función hacía exactamente lo que parecía razonable), estaba en una interacción entre dos reglas de seguridad distintas que solo se ve si se comprueban juntas.
+
+### Decisiones a poder defender
+
+- **`Request`/`Response` estándar en vez de `@vercel/node`:** el handler se escribe con la API Fetch nativa (`export default function handler(request: Request): Promise<Response>`), no con los tipos `VercelRequest`/`VercelResponse`. Evita una dependencia adicional, y permite testear el endpoint construyendo un `Request` real en Vitest, sin mocks de Express ni de Vercel — los 9 tests de `validate-pin.test.ts` llaman al handler exactamente como lo llamaría Vercel en producción. Sigue corriendo en el runtime Node.js (no Edge), que es lo que exige `timingSafeEqual` de `node:crypto`.
+- **Comparación de tiempo constante incluso para agentes inexistentes:** `isPinValid` siempre ejecuta `timingSafeEqual` contra un valor dummy si el agente no tiene PIN configurado, en vez de devolver `false` inmediatamente. Sin esto, el tiempo de respuesta sería un canal lateral que revelaría qué `agentId` son válidos, aunque el mensaje de error fuera idéntico.
+- **Los nombres de agente son placeholders deliberados:** `AGENTS` usa "Agente 1"–"Agente 4" en vez de nombres reales del personal, para no versionar datos identificativos de empleados en un repositorio público de GitHub. El PIN de cada uno vive solo en variables de entorno del servidor (`PIN_AGENT_1`…), documentadas sin valores en `.env.example`, nunca en el código.
+- **Sin comprobación de longitud de buffer previa a `timingSafeEqual`:** Node lanza si las longitudes no coinciden, así que `safeCompare` comprueba la longitud primero y devuelve `false` sin comparar — un PIN mal configurado (longitud distinta a 4) produce un `false` rápido en vez de una excepción, pero esto es un caso de error de configuración del propio servidor, no una señal que un atacante externo pueda provocar variando su PIN (el formato de 4 dígitos ya se valida antes).
+- **`api/` como proyecto de TypeScript aparte (`tsconfig.api.json`):** no estaba incluido en ningún proyecto de `tsc -b`, así que `pnpm build` no lo tipaba en absoluto. Se añadió como cuarto proyecto referenciado para que el mismo quality gate que cubre `src/` cubra también el backend.
+- **El gate de identificación se integró ya en `App.tsx`**, no se dejó aislado: sin agente identificado no se puede llegar al formulario de cotización, cumpliendo la regla de negocio "cada cotización queda asociada al agente" desde este capítulo, en vez de retocar `App.tsx` más adelante.
+- **`sessionStorage` guarda solo el nombre del agente, nunca el PIN:** una vez validado, la sesión del navegador recuerda quién está identificado hasta cerrar la pestaña, sin que el PIN exista en ningún momento fuera del cuerpo de la petición HTTP inicial.
+- **El Context se dividió en 3 archivos** (`AgentSessionContextValue.ts` con `createContext` y los tipos, `AgentSessionContext.tsx` solo con el `Provider`, `useAgentSession.ts` solo con el hook), siguiendo el mismo patrón que el `CartContext` del proyecto de referencia del Módulo 10. No es solo estilo: `oxlint` avisaba de que mezclar un componente con un hook/tipos en el mismo archivo rompe el Fast Refresh de React (al editar el hook, se recarga también el árbol de componentes innecesariamente) — separar por responsabilidad resuelve el aviso y es más fácil de navegar.
+
+### Una limitación conocida y documentada, no un olvido
+
+`pnpm dev` (Vite) no sirve `/api/*.ts` — eso solo funciona con `vercel dev` o con la app ya desplegada en Vercel. Por eso la prueba en navegador de este capítulo intercepta la llamada de red (`page.route` de Playwright) en vez de golpear un servidor real; la lógica real del endpoint la cubren los tests que llaman al handler directamente. La prueba end-to-end contra el endpoint desplegado de verdad queda para el capítulo 8 (despliegue).
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (164 tests: 34 nuevos de este capítulo) y `pnpm build` verificados en verde (incluyendo el nuevo proyecto `tsconfig.api.json`). Cobertura: 100% funciones, ≥98% líneas/branches/statements. Probado en navegador (Chromium headless) con la llamada de red interceptada: PIN incorrecto muestra el mensaje genérico enmascarado, PIN correcto identifica al agente y desbloquea la calculadora, "Cerrar sesión" vuelve a la pantalla de identificación.

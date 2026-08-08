@@ -47,7 +47,7 @@ Toda regla de cálculo (precios, descuentos, cascada, extras, edad) debe impleme
 
 ## PIN de personal
 
-Nunca validar el PIN en el cliente. Siempre a través de `api/validate-pin.ts`, leyendo los PIN de variables de entorno de servidor (nunca `VITE_*`, que sí se empaquetan en el cliente).
+Nunca validar el PIN en el cliente. Siempre a través de `api/validate-pin.ts`, leyendo los PIN de variables de entorno de servidor (nunca `VITE_*`, que sí se empaquetan en el cliente). Especificación completa de seguridad del endpoint (contrato, comparación timing-safe, mensajes de error genéricos, decisión de alcance sobre rate limiting, sesión del agente) en [`docs/reglas-de-negocio.md`](./docs/reglas-de-negocio.md) §6 — leer antes de implementar el capítulo 5.
 
 ## Scripts (a crear en el setup)
 

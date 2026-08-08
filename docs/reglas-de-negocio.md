@@ -125,6 +125,33 @@ Los extras del mismo grupo (`storage`, `buggy`) son mutuamente excluyentes. Bugg
 - Validación del PIN en función serverless (`api/validate-pin.ts`), nunca en cliente.
 - Cada cotización queda asociada al agente identificado.
 
+### Especificación de seguridad de `api/validate-pin.ts` (Módulos 6 y 9 del temario, aplicado)
+
+**Contrato del endpoint:**
+```
+POST /api/validate-pin
+Request:  { "agentId": string, "pin": string }
+Response 200: { "valid": true, "agentName": string }
+Response 400: payload inválido (formato incorrecto)
+Response 401: PIN incorrecto o agente inexistente (mismo mensaje para ambos casos)
+```
+
+**Reglas obligatorias:**
+1. **Solo `POST`.** Cualquier otro método se rechaza — un PIN nunca debe poder viajar en una query string (acabaría en logs/Referer).
+2. **Validar el payload antes de comparar** (tipo, longitud esperada del PIN) — manual o con Zod, cualquiera de los dos vale; lo importante es no comparar contra un valor no validado.
+3. **Comparación del PIN con `timingSafeEqual`** (`node:crypto`), nunca con `===` — evita filtrar por tiempo de respuesta si el PIN es parcialmente correcto.
+4. **Mensaje de error siempre genérico**: la misma respuesta (401, "PIN inválido") tanto si el `agentId` no existe como si el PIN es incorrecto — nunca distinguir los dos casos, evita que alguien pueda enumerar agentes válidos por prueba y error.
+5. **Nunca loguear el valor del PIN**, ni en éxito ni en fallo, ni devolverlo en ninguna respuesta.
+6. **Fail securely**: cualquier fallo no controlado (variable de entorno ausente, payload malformado, excepción inesperada) deniega el acceso (400/401/500) — nunca deja pasar por defecto.
+7. **CORS restrictivo**: mismo origen que el frontend (mismo dominio de Vercel), nunca `origin: '*'`.
+8. **PIN en variables de entorno de servidor** (nunca `VITE_*`), con `.env.example` documentando las claves esperadas sin valores reales.
+
+**Rate limiting — decisión de alcance consciente:** las funciones serverless de Vercel no mantienen estado persistente entre invocaciones, así que un contador de intentos fallidos fiable requeriría infraestructura adicional (Vercel KV/Upstash Redis) — fuera de alcance para el v1 dado el plazo y que son solo 3-4 agentes de confianza, no un endpoint público. Se acepta el riesgo residual, mitigado por: mensajes de error genéricos (regla 4), y registro en logs de cada intento fallido (timestamp + resultado, nunca el PIN) para revisión manual si hiciera falta. Queda documentado como decisión de alcance, no como omisión — si el proyecto creciera más allá del v1, Upstash sería la vía natural.
+
+**Hash del PIN en vez de texto plano en la variable de entorno:** mejora de defensa en profundidad, no obligatoria para el alcance de este v1 (el PIN en texto plano ya vive solo en el servidor, nunca en el cliente, que es la barrera que de verdad importaba). Se puede añadir más adelante sin cambiar el contrato del endpoint.
+
+**Sesión del agente en el cliente:** el PIN se valida una vez por sesión de navegador, no en cada cotización — tras validar, se guarda únicamente el **nombre del agente ya identificado** en `sessionStorage` (nunca el PIN), usado para asociar las cotizaciones siguientes hasta cerrar la pestaña.
+
 ## 7. Actualizador de tarifas (nuevo en v1)
 
 - El catálogo de conceptos (modalidades, descuentos, extras) es fijo — no se crean ni eliminan.
