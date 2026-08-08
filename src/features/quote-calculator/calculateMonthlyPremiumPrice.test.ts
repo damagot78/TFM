@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { calculateMonthlyPremiumPrice } from './calculateMonthlyPremiumPrice'
+import { calculateMonthlyPremiumPrice, previewMonthlyPremiumUnits } from './calculateMonthlyPremiumPrice'
 
 describe('calculateMonthlyPremiumPrice', () => {
   it('ejemplo de referencia: Agosto (alta) + Septiembre (estándar) = 725 + 860 = 1.585 €', () => {
@@ -85,5 +85,26 @@ describe('calculateMonthlyPremiumPrice', () => {
 
     expect(consoleErrorSpy).toHaveBeenCalled()
     consoleErrorSpy.mockRestore()
+  })
+})
+
+describe('previewMonthlyPremiumUnits', () => {
+  it('para meses que caen limpios, cada unidad es automática con su tarifa y precio', () => {
+    expect(previewMonthlyPremiumUnits(new Date(2026, 7, 1), 2)).toEqual([
+      { index: 0, status: 'automatic', rate: 'high', price: 725 },
+      { index: 1, status: 'automatic', rate: 'standard', price: 860 },
+    ])
+  })
+
+  it('para un cruce de temporada con la misma tarifa, la unidad es automática', () => {
+    expect(previewMonthlyPremiumUnits(new Date(2026, 2, 15), 1)).toEqual([
+      { index: 0, status: 'automatic', rate: 'standard', price: 860 },
+    ])
+  })
+
+  it('para un cruce de temporada con tarifas distintas, la unidad queda pendiente con las dos opciones', () => {
+    expect(previewMonthlyPremiumUnits(new Date(2026, 5, 15), 1)).toEqual([
+      { index: 0, status: 'pending', options: ['standard', 'high'] },
+    ])
   })
 })

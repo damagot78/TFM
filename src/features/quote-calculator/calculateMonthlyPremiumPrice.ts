@@ -21,28 +21,36 @@ export type MonthlyPremiumPriceResult =
   | { success: true; units: MonthlyPremiumUnit[]; total: number }
   | { success: false; errors: string[] }
 
+export type MonthlyPremiumUnitPreview =
+  | { index: number; status: 'automatic'; rate: SeasonRate; price: number }
+  | { index: number; status: 'pending'; options: [SeasonRate, SeasonRate] }
+
+type UnitClassification =
+  | { index: number; status: 'automatic'; rate: SeasonRate }
+  | { index: number; status: 'pending'; options: [SeasonRate, SeasonRate] }
+
 function rateForMonth(month: number): SeasonRate {
   const normalizedMonth = ((month - 1) % 12) + 1
   return MONTHLY_PREMIUM_HIGH_SEASON_MONTHS.includes(normalizedMonth) ? 'high' : 'standard'
 }
 
-export function calculateMonthlyPremiumPrice(
-  startDate: Date,
-  months: 1 | 2 | 3,
-  manualChoices: MonthlyPremiumManualChoices = {},
-): MonthlyPremiumPriceResult {
+/**
+ * Clasifica cada mes contratado según si cae limpio en un único mes natural,
+ * o cruza dos meses naturales (con la misma tarifa, o con tarifas distintas
+ * pendientes de elección manual). Es la base tanto del cálculo final como de
+ * la vista previa que usa la UI para pedir la elección al agente.
+ */
+function classifyUnits(startDate: Date, months: 1 | 2 | 3): UnitClassification[] {
   const startMonth = startDate.getMonth() + 1
   const startsOnFirstOfMonth = startDate.getDate() === 1
 
-  const errors: string[] = []
-  const units: MonthlyPremiumUnit[] = []
+  const units: UnitClassification[] = []
 
   for (let index = 0; index < months; index++) {
     const monthA = startMonth + index
 
     if (startsOnFirstOfMonth) {
-      const rate = rateForMonth(monthA)
-      units.push({ index, rate, price: MONTHLY_PREMIUM_RATES[rate], resolvedManually: false })
+      units.push({ index, status: 'automatic', rate: rateForMonth(monthA) })
       continue
     }
 
@@ -50,14 +58,42 @@ export function calculateMonthlyPremiumPrice(
     const rateB = rateForMonth(monthA + 1)
 
     if (rateA === rateB) {
-      units.push({ index, rate: rateA, price: MONTHLY_PREMIUM_RATES[rateA], resolvedManually: false })
+      units.push({ index, status: 'automatic', rate: rateA })
+    } else {
+      units.push({ index, status: 'pending', options: [rateA, rateB] })
+    }
+  }
+
+  return units
+}
+
+/** Vista previa de cómo se tarifica cada mes contratado, sin resolver los cruces de temporada pendientes. */
+export function previewMonthlyPremiumUnits(startDate: Date, months: 1 | 2 | 3): MonthlyPremiumUnitPreview[] {
+  return classifyUnits(startDate, months).map((unit) =>
+    unit.status === 'automatic'
+      ? { index: unit.index, status: 'automatic', rate: unit.rate, price: MONTHLY_PREMIUM_RATES[unit.rate] }
+      : unit,
+  )
+}
+
+export function calculateMonthlyPremiumPrice(
+  startDate: Date,
+  months: 1 | 2 | 3,
+  manualChoices: MonthlyPremiumManualChoices = {},
+): MonthlyPremiumPriceResult {
+  const errors: string[] = []
+  const units: MonthlyPremiumUnit[] = []
+
+  for (const unit of classifyUnits(startDate, months)) {
+    if (unit.status === 'automatic') {
+      units.push({ index: unit.index, rate: unit.rate, price: MONTHLY_PREMIUM_RATES[unit.rate], resolvedManually: false })
       continue
     }
 
-    const manualChoice = manualChoices[index]
+    const manualChoice = manualChoices[unit.index]
     if (manualChoice !== undefined) {
       units.push({
-        index,
+        index: unit.index,
         rate: manualChoice,
         price: MONTHLY_PREMIUM_RATES[manualChoice],
         resolvedManually: true,
@@ -66,7 +102,7 @@ export function calculateMonthlyPremiumPrice(
     }
 
     errors.push(
-      `El mes contratado #${index + 1} cruza dos meses naturales con tarifas distintas ` +
+      `El mes contratado #${unit.index + 1} cruza dos meses naturales con tarifas distintas ` +
         `(alta ${MONTHLY_PREMIUM_RATES.high} € / estándar ${MONTHLY_PREMIUM_RATES.standard} €); ` +
         'el agente debe elegir manualmente cuál aplicar.',
     )

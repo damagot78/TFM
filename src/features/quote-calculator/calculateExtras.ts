@@ -1,12 +1,13 @@
 import type { DiscountId, Extra, ExtraId, ModalityId } from '../../shared/types/catalog'
-import {
-  EXTRAS,
-  MIN_AGE_FOR_BUGGY,
-  MODALITIES_WITHOUT_BUGGY_FACILITIES,
-  MODALITIES_WITH_FREE_BUGGY_ANNUAL,
-} from '../../shared/constants/extras'
+import { MIN_AGE_FOR_BUGGY, MODALITIES_WITH_FREE_BUGGY_ANNUAL } from '../../shared/constants/extras'
 import { MODALITIES } from '../../shared/constants/modalities'
 import { isAdult } from './ageEligibility'
+import {
+  getBlockingGroupSelection,
+  getExtraOrThrow,
+  isExtraAllowedForAge,
+  isExtraAllowedForModality,
+} from './extrasCatalog'
 
 export interface ExtraLineItem {
   extraId: ExtraId
@@ -23,43 +24,27 @@ export type ExtrasCalculationResult =
   | { success: true; items: ExtraLineItem[]; total: number }
   | { success: false; errors: string[] }
 
-function getExtraOrThrow(id: ExtraId): Extra {
-  const extra = EXTRAS.find((e) => e.id === id)
-  if (!extra) {
-    throw new Error(`Extra desconocido en el catálogo: ${id}`)
-  }
-  return extra
-}
-
 function validateExtraSelection(
   modalityId: ModalityId,
   extraIds: ExtraId[],
   context: ExtrasCalculationContext,
 ): string[] {
   const errors: string[] = []
-  const extras = extraIds.map((id) => getExtraOrThrow(id))
 
-  const groupCounts = new Map<string, Extra[]>()
-  for (const extra of extras) {
-    if (!extra.group) continue
-    const group = groupCounts.get(extra.group) ?? []
-    group.push(extra)
-    groupCounts.set(extra.group, group)
-  }
-  for (const [group, groupExtras] of groupCounts) {
-    if (groupExtras.length > 1) {
-      const names = groupExtras.map((e) => e.name).join(', ')
-      errors.push(`Los extras del grupo "${group}" son excluyentes entre sí: ${names}.`)
-    }
-  }
+  for (const id of extraIds) {
+    const extra = getExtraOrThrow(id)
 
-  const hasBuggyExtra = extras.some((e) => e.group === 'buggy')
-  if (hasBuggyExtra) {
-    if (MODALITIES_WITHOUT_BUGGY_FACILITIES.includes(modalityId)) {
+    if (!isExtraAllowedForModality(extra, modalityId)) {
       errors.push(`La modalidad "${modalityId}" no tiene instalaciones para extras de Buggy.`)
     }
-    if (context.age === null || context.age < MIN_AGE_FOR_BUGGY) {
+    if (!isExtraAllowedForAge(extra, context.age)) {
       errors.push(`Los extras de Buggy requieren tener al menos ${MIN_AGE_FOR_BUGGY} años.`)
+    }
+
+    const blockers = getBlockingGroupSelection(id, extraIds)
+    if (blockers.length > 0) {
+      const names = blockers.map((blockerId) => getExtraOrThrow(blockerId).name).join(', ')
+      errors.push(`"${extra.name}" es excluyente con: ${names}.`)
     }
   }
 

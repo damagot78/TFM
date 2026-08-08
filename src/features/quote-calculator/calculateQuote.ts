@@ -2,7 +2,7 @@ import type { DiscountId, Modality, ModalityId } from '../../shared/types/catalo
 import { MAX_SIMULTANEOUS_DISCOUNTS } from '../../shared/constants/discounts'
 import { MODALITIES } from '../../shared/constants/modalities'
 import { roundCurrency } from '../../shared/utils/money'
-import { getDiscountOrThrow } from './discountCatalog'
+import { getBlockingSelections, getDiscountOrThrow, isDiscountAllowedForCategory } from './discountCatalog'
 
 export interface CascadeStep {
   discountId: DiscountId
@@ -41,13 +41,14 @@ function validateDiscountSelection(
 
   for (const id of discountIds) {
     const discount = getDiscountOrThrow(id)
-    if (discount.categoryRestriction === 'excludes-premium' && modality.category === 'premium') {
-      errors.push(`"${discount.name}" no aplicable a la categoría Premium.`)
+    if (!isDiscountAllowedForCategory(discount, modality.category)) {
+      const reason =
+        discount.categoryRestriction === 'premium-only'
+          ? 'solo aplicable a la categoría Premium'
+          : 'no aplicable a la categoría Premium'
+      errors.push(`"${discount.name}" ${reason}.`)
     }
-    if (discount.categoryRestriction === 'premium-only' && modality.category !== 'premium') {
-      errors.push(`"${discount.name}" solo aplicable a la categoría Premium.`)
-    }
-    const incompatible = discount.incompatibleWith.filter((other) => discountIds.includes(other))
+    const incompatible = getBlockingSelections(id, discountIds)
     if (incompatible.length > 0) {
       errors.push(`"${discount.name}" es incompatible con: ${incompatible.join(', ')}.`)
     }

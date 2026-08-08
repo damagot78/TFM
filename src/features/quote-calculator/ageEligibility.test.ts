@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { filterDiscountsEligibleByAge, isAdult, isDiscountEligibleByAge } from './ageEligibility'
+import { MODALITIES } from '../../shared/constants/modalities'
+import {
+  filterDiscountsEligibleByAge,
+  getEligibleDiscounts,
+  isAdult,
+  isDiscountEligibleByAge,
+} from './ageEligibility'
+
+const sm = MODALITIES.find((m) => m.id === 'sm')!
+const premium = MODALITIES.find((m) => m.id === 'premium')!
 
 describe('isDiscountEligibleByAge', () => {
   it('un descuento sin restricción de edad es elegible a cualquier edad', () => {
@@ -66,6 +75,18 @@ describe('filterDiscountsEligibleByAge', () => {
       'family',
       'referral',
     ])
+  })
+})
+
+describe('getEligibleDiscounts', () => {
+  it('combina restricción de categoría y de edad: modalidad Standard, edad desconocida', () => {
+    expect(getEligibleDiscounts(sm, null)).toEqual(['week', 'afternoon', 'upgrade', 'avsv', 'family', 'referral'])
+  })
+
+  it('combina restricción de categoría y de edad: modalidad Premium, 10 años', () => {
+    // "Lunes a Viernes"/"Abono Tarde" quedan fuera por categoría (Premium);
+    // "Niño" entra por edad y categoría; "Junior"/"Joven" quedan fuera por edad.
+    expect(getEligibleDiscounts(premium, 10)).toEqual(['upgrade', 'avsv', 'family', 'child', 'sub25', 'referral'])
   })
 })
 

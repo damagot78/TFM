@@ -163,3 +163,50 @@ La especificación original decía "Adulto (≥18 años, o sin descuento infanti
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` (55 tests: 34 nuevos de este capítulo — 4 de `calculateAge`, 12 de elegibilidad por edad, 18 de extras — más los 21 de capítulos anteriores) y `pnpm build` verificados en verde.
+
+---
+
+## 4. Capítulo 4 — UI del formulario y resumen
+
+### Qué se construyó
+
+La interfaz completa sobre los tres motores ya construidos (capítulos 2-3), sin backend: datos del abonado, modalidad de abono (con el selector de mes/temporada para `monthly_premium`), descuentos, extras y un resumen que explica cada paso de la cascada. Se dividió en un hook central (`useQuoteForm`) más seis componentes de presentación, cada uno con sus propios tests de Testing Library.
+
+*Cómo contarlo en el vídeo:* este capítulo no añade lógica de negocio nueva — conecta la ya construida y testeada en los capítulos 2-3 con una interfaz real. Es la diferencia entre "el motor calcula bien" (demostrado con 96 tests unitarios) y "un agente puede usarlo" (demostrado aquí).
+
+### El diseño no venía de un archivo, sino de una descripción funcional
+
+A diferencia de lo que decían `README.md`/`CLAUDE.md` ("la interfaz reutiliza un diseño ya validado"), no había ningún archivo de diseño en el repositorio para este capítulo. Antes de escribir un solo componente se preguntó explícitamente cómo se iba a recibir ese diseño; la respuesta fue una descripción funcional detallada, sección por sección, en vez de una captura o un Figma. La interfaz de este capítulo se construyó a partir de esa descripción, priorizando claridad funcional sobre diseño visual elaborado, tal como se pidió.
+
+*Cómo contarlo en el vídeo:* es un ejemplo de que "dirigir" no siempre significa aportar un artefacto (una imagen, un enlace) — una descripción funcional precisa es una entrada válida y suficiente para construir una interfaz coherente, siempre que sea el alumno quien la defina.
+
+### Arquitectura: un hook central, componentes tontos
+
+`useQuoteForm` concentra todo el estado del formulario (datos del abonado, modalidad, descuentos, extras) y las llamadas a los tres motores (`calculateQuote`, `calculateMonthlyPremiumPrice`, `calculateExtras`), devolviendo un único objeto con el estado derivado y las acciones. Los seis componentes (`SubscriberDataSection`, `ModalitySelector`, `MonthlyPremiumPicker`, `DiscountsSection`, `ExtrasSection`, `QuoteSummary`) no llaman a ningún motor directamente — reciben datos y funciones por props y solo renderizan. Esto permite testear la lógica de orquestación una vez (con `renderHook`) en vez de reproducirla en cada componente, y cada componente se puede testear con datos de prueba simples sin depender de los motores reales.
+
+### Dos piezas de lógica nuevas, extraídas para no duplicar reglas ya testeadas
+
+La UI necesita saber, antes de que el agente intente guardar la cotización, qué opciones mostrar habilitadas o deshabilitadas — y esa información no la daban los motores del capítulo 2-3 tal cual, que solo validan una selección ya hecha:
+
+- **`getEligibleDiscounts(modalidad, edad)`** combina la restricción de categoría (ya existente en `calculateQuote`) con el filtro de edad (capítulo 3) para decidir qué descuentos ofrecer como checkbox activo.
+- **`getBlockingSelections` / `getBlockingGroupSelection`** exponen, para un descuento o extra candidato, cuáles de los ya seleccionados lo bloquean por incompatibilidad o por grupo de exclusividad.
+
+En los tres casos, la regla original no se reescribió: se extrajo del motor existente (`calculateQuote.ts`, `calculateExtras.ts`) a una función pura reutilizable, y el motor se refactorizó para usar esa misma función en vez de tener la regla duplicada en dos sitios. Los tests de los capítulos 2-3 se mantuvieron en verde durante todo el refactor, confirmando que el comportamiento no cambió.
+
+### Un caso real de "hay que ver la app funcionando, no solo los tests en verde"
+
+Al escribir el primer test de un componente con varias renderizaciones en el mismo archivo, uno de los tests fallaba de una forma que no tenía sentido a primera vista (un campo de fecha no disparaba su evento). La causa: sin `globals: true` en Vitest (decisión del capítulo 1), Testing Library no limpia el DOM automáticamente entre tests — hace falta registrar `afterEach(cleanup)` explícitamente. Sin ese registro, cada test de un archivo con varias renderizaciones acumula el DOM del test anterior, y una consulta por texto puede encontrar un elemento "fantasma" de otro test. Se corrigió una vez en `src/test/setup.ts`, y afecta a todos los tests de componentes futuros.
+
+*Cómo contarlo en el vídeo:* es un recordatorio de por qué "los tests están en verde" no basta como criterio de cierre — hubo que abrir la app en un navegador real (Playwright headless, sin backend) y reproducir a mano el caso dorado y el cruce de temporada de `monthly_premium` para confirmar que la aplicación, no solo cada pieza por separado, se comporta como se diseñó.
+
+### Decisiones a poder defender
+
+- **Selects nativos en vez de componentes de UI a medida** para modalidad y meses: son accesibles por defecto, no requieren una librería adicional, y encajan con "priorizar claridad funcional" para una herramienta interna.
+- **Checkboxes deshabilitados con motivo visible, no ocultos:** un descuento no elegible (por edad, categoría, incompatibilidad o límite de 3) se muestra deshabilitado con el motivo en texto, en vez de desaparecer de la lista. El agente ve el catálogo completo y entiende por qué algo no está disponible, en línea con la propuesta de valor "guiada y explicada" del proyecto.
+- **`monthly_premium` no muestra la sección de descuentos:** la especificación dice que esta categoría no admite ningún descuento (capítulo 2), así que la UI ni siquiera ofrece la sección, en vez de mostrarla vacía o deshabilitada.
+- **El resumen desglosa cada paso de la cascada con su base, no solo el resultado final:** "Lunes a Viernes (15% sobre 4.400,00 €) −660,00 €" en vez de solo el descuento final. Es la parte de la interfaz que más directamente ataca el problema original del proyecto (errores y curva de aprendizaje) — el agente ve el razonamiento, no solo el número.
+- **Cobertura de tests al 100% en funciones** (umbral ya configurado en `vite.config.ts`): se usó para encontrar ramas sin testear que el ojo no detecta a simple vista (p. ej. la rama "elección manual ya guardada" del selector de temporada, o el rechazo de una modalidad desconocida), no como objetivo en sí mismo.
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (130 tests: 75 nuevos de este capítulo) y `pnpm build` verificados en verde. Cobertura: 100% funciones/líneas/statements, 99,5% ramas (umbral 80%). Probado además en un navegador real (Chromium headless vía Playwright, sin backend): caso dorado completo con un extra añadido, y el cruce de temporada de `monthly_premium` resuelto manualmente — sin errores de consola inesperados.

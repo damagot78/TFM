@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { ModalityId } from '../../shared/types/catalog'
 import { calculateQuote } from './calculateQuote'
 
 describe('calculateQuote', () => {
@@ -119,6 +120,24 @@ describe('calculateQuote', () => {
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.errors.some((e) => e.includes('referido'))).toBe(true)
+    }
+  })
+
+  it('rechaza "referral" con un importe del referido no positivo', () => {
+    const result = calculateQuote('sm', ['referral'], { referralAmount: 0 })
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.some((e) => e.includes('mayor que 0'))).toBe(true)
+    }
+  })
+
+  it('rechaza una modalidad desconocida', () => {
+    const result = calculateQuote('not-a-real-modality' as ModalityId, [])
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.some((e) => e.includes('desconocida'))).toBe(true)
     }
   })
 

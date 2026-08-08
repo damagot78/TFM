@@ -1,6 +1,6 @@
-import type { DiscountId } from '../../shared/types/catalog'
+import type { DiscountId, Modality } from '../../shared/types/catalog'
 import { DISCOUNTS } from '../../shared/constants/discounts'
-import { getDiscountOrThrow } from './discountCatalog'
+import { getDiscountOrThrow, isDiscountAllowedForCategory } from './discountCatalog'
 
 /**
  * Un descuento sin rango de edad es elegible a cualquier edad. Si el
@@ -22,6 +22,13 @@ export function isDiscountEligibleByAge(id: DiscountId, age: number | null): boo
     return false
   }
   return true
+}
+
+/** Descuentos que se le pueden ofrecer al agente para esta modalidad y edad: cumplen categoría y edad a la vez. */
+export function getEligibleDiscounts(modality: Modality, age: number | null): DiscountId[] {
+  return DISCOUNTS.filter(
+    (discount) => isDiscountAllowedForCategory(discount, modality.category) && isDiscountEligibleByAge(discount.id, age),
+  ).map((discount) => discount.id)
 }
 
 export function filterDiscountsEligibleByAge(
