@@ -53,10 +53,9 @@ Proyecto construido desde cero aplicando lo aprendido en el máster:
 3. **Scope Rule** para la organización del código (`shared/` vs `features/`).
 4. **Quality gates**: lint + typecheck + tests antes de cada commit relevante.
 5. Desarrollo guiado por IA (Claude Code) bajo dirección explícita del autor, capítulo a capítulo, con explicación de cada decisión — ver [`CLAUDE.md`](./CLAUDE.md).
+6. Revisión deliberada contra el temario del máster (268 PDFs de los módulos de Ingeniería, Arquitectura, Calidad y Seguridad, contrastados contra el código real) — ver [`docs/analisis-curricular.md`](./docs/analisis-curricular.md).
 
 ## Documentación y despliegue
-
-_(se completa a medida que se avanza)_
 
 ### Instalación y ejecución
 
@@ -74,22 +73,73 @@ pnpm build         # build de producción (typecheck + vite build)
 
 ```
 src/
-├── shared/{types,utils,constants,strategies,hooks,components}/  # usado por 2+ features
+├── shared/
+│   ├── types/catalog.ts, staff.ts, tariffOverrides.ts  # modelo de dominio compartido
+│   ├── constants/                        # catálogo: modalidades, descuentos, extras, agentes
+│   ├── utils/money.ts, tariffResolvers.ts, tariffOverridesRepository.ts # redondeo, overrides de tarifas
+│   └── components/FormField.tsx          # input+label reutilizado por 2+ features
 ├── features/
-│   ├── quote-calculator/     # motor de cuota + UI del formulario/resumen
-│   ├── staff-identification/ # pantalla de agente + PIN
-│   ├── tariff-admin/         # actualizador de precios
-│   └── excel-export/         # exportación de cotizaciones
-├── context/
+│   ├── quote-calculator/
+│   │   ├── calculateQuote.ts             # motor de cascada de descuentos (cap. 2, cap. 6: overrides)
+│   │   ├── calculateMonthlyPremiumPrice.ts # precio de monthly_premium (cap. 2, cap. 6: overrides)
+│   │   ├── calculateAge.ts, ageEligibility.ts # validación de edad (cap. 3)
+│   │   ├── calculateExtras.ts            # extras con exclusividad de grupo (cap. 3, cap. 6: overrides)
+│   │   ├── discountCatalog.ts, extrasCatalog.ts # lookups compartidos del catálogo
+│   │   ├── useQuoteForm.ts               # hook de orquestación de la UI (cap. 4)
+│   │   └── components/                   # formulario y resumen (cap. 4)
+│   ├── staff-identification/
+│   │   └── AgentIdentificationScreen.tsx # pantalla de agente + PIN (cap. 5)
+│   └── tariff-admin/
+│       └── TariffAdminScreen.tsx         # actualizador de tarifas (cap. 6)
+├── context/                              # AgentSessionContext (sesión del agente)
 └── test/setup.ts
 api/
-└── validate-pin.ts           # función serverless (Vercel) — capítulo 5
+├── validate-pin.ts                       # endpoint serverless (cap. 5)
+└── _lib/                                 # isPinValid, parseValidatePinPayload
 ```
 
-- Despliegue: pendiente (previsto en Vercel).
+### Métricas
+
+_(actualizado en cada capítulo; refleja el estado a fecha del capítulo 6 de 8)_
+
+| Métrica | Valor |
+|---|---|
+| 🧪 Tests | 201 pasados |
+| 📈 Cobertura | 100% funciones, 99,4% líneas/sentencias, 98,7% ramas (umbral: 100/80/80/80) |
+| 🧹 Lint | 0 errores, 0 warnings (`oxlint`) |
+| 📦 Bundle JS | 219,5 KB (67,9 KB gzip) |
+| 🎨 Bundle CSS | 12,8 KB (3,3 KB gzip) |
+| 🎭 E2E | fuera del núcleo v1 (roadmap, ver README §Roadmap) |
+- Build de producción (`tsc -b && vite build`) correcto, incluyendo el proyecto `api/`.
+
+### Checklist final
+
+```
+✅ pnpm dev            → app funciona en desarrollo
+✅ pnpm lint            → 0 errores, 0 warnings
+✅ pnpm build            → build de producción correcto (incluye api/)
+✅ pnpm test:run          → todos los tests en verde
+✅ pnpm test:coverage      → umbrales superados (100% funciones, 80%+ resto)
+✅ Probado en navegador real → capítulos 4, 5 y 6 verificados interactuando con la app
+✅ Actualizador de tarifas con efecto real en los cálculos (cap. 6)
+
+⬜ Despliegue en Vercel
+⬜ Usuario y contraseña de prueba documentados (obligatorio, hay login)
+⬜ Exportación a Excel (capítulo 7)
+⬜ Slides
+⬜ Vídeo
+⬜ Deuda técnica conocida resuelta (ver CLAUDE.md) — opcional, no bloquea la entrega
+```
+
+### Prácticas aplicadas
+
+TDD (red-green-refactor) · Scope Rule · patrón Result en vez de excepciones para errores de negocio · funciones puras y pequeñas, una responsabilidad cada una · seguridad server-side para datos sensibles (PIN nunca en cliente) · umbrales de cobertura exigidos automáticamente · documentación como código, versionada junto al proyecto (`docs/reglas-de-negocio.md`, `docs/guion-tfm.md`) · desarrollo dirigido por IA con dirección explícita del autor, capítulo a capítulo.
+
+- Despliegue: pendiente (previsto en Vercel) — capítulo 8.
+- ⚠️ **Usuario y contraseña de prueba: pendiente.** Requisito obligatorio del TFM al tener login (identificación de personal por PIN desde el capítulo 5). No se puede rellenar hasta que exista un despliegue real con un PIN configurado para pruebas — capítulo 8.
 - Slides: pendiente.
 - Vídeo: pendiente.
 
-## Nota sobre seguridad de la identificación de personal
+## ⚠️ Nota sobre seguridad de la identificación de personal
 
 El PIN de cada agente se valida en una función serverless (`api/validate-pin.ts`), comparándolo contra variables de entorno del servidor que nunca se envían al navegador. Es un mecanismo de **registro interno** (saber quién generó cada cotización) para una herramienta de uso interno, no un sistema de autenticación multiusuario con roles — decisión de alcance consciente y documentada.

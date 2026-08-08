@@ -158,6 +158,10 @@ Response 401: PIN incorrecto o agente inexistente (mismo mensaje para ambos caso
 - Solo el **precio** de cada concepto es editable por el personal autorizado.
 - Los precios editados se persisten (localStorage en v1).
 
+### Requisito de diseño (detectado en el análisis del temario, antes de escribir código)
+
+`calculateQuote`, `calculateExtras` y `calculateMonthlyPremiumPrice` (capítulos 2-3) importan hoy `MODALITIES`/`DISCOUNTS`/`EXTRAS` como constantes fijas del módulo. Si el capítulo 6 se limita a guardar precios editados en `localStorage` sin más, **esos precios editados no llegarán a afectar ningún cálculo** — los motores seguirían usando el catálogo original importado. El catálogo (o al menos los precios, como un mapa de overrides) debe poder inyectarse/parametrizarse en los tres motores antes de que el capítulo 6 dé por terminada la funcionalidad. No es un detalle de implementación menor: es parte de la definición de "hecho" de este capítulo — sin esto, el actualizador de tarifas no actualiza nada de verdad.
+
 ## 8. Exportación a Excel (nuevo en v1)
 
 Cada cotización generada se puede añadir a una exportación `.xlsx` con, al menos: agente, fecha, modalidad, edad, descuentos aplicados, extras, total.

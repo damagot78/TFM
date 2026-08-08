@@ -1,5 +1,8 @@
 import type { Extra, ExtraGroupId, ExtraId, ModalityId } from '../../../shared/types/catalog'
+import type { TariffOverrides } from '../../../shared/types/tariffOverrides'
 import { EXTRAS, MIN_AGE_FOR_BUGGY } from '../../../shared/constants/extras'
+import { EMPTY_TARIFF_OVERRIDES } from '../../../shared/constants/tariffOverrides'
+import { resolveExtraPrice } from '../../../shared/utils/tariffResolvers'
 import { getBlockingGroupSelection, getExtraOrThrow, isExtraAllowedForAge, isExtraAllowedForModality } from '../extrasCatalog'
 
 const GROUP_LABELS: Record<ExtraGroupId, string> = {
@@ -12,6 +15,7 @@ interface ExtrasSectionProps {
   age: number | null
   extraIds: ExtraId[]
   onToggle: (id: ExtraId) => void
+  overrides?: TariffOverrides
 }
 
 function getDisabledReason(
@@ -32,12 +36,18 @@ function getDisabledReason(
   return null
 }
 
-function formatExtraLabel(extra: Extra): string {
+function formatExtraLabel(extra: Extra, overrides: TariffOverrides): string {
   const groupSuffix = extra.group ? ` (${GROUP_LABELS[extra.group]})` : ''
-  return `${extra.name} — ${extra.price} €${groupSuffix}`
+  return `${extra.name} — ${resolveExtraPrice(extra, overrides)} €${groupSuffix}`
 }
 
-export function ExtrasSection({ modalityId, age, extraIds, onToggle }: ExtrasSectionProps) {
+export function ExtrasSection({
+  modalityId,
+  age,
+  extraIds,
+  onToggle,
+  overrides = EMPTY_TARIFF_OVERRIDES,
+}: ExtrasSectionProps) {
   return (
     <section className="rounded-lg border border-gray-200 bg-white p-4">
       <h2 className="mb-4 text-base font-semibold text-gray-900">Extras</h2>
@@ -54,7 +64,7 @@ export function ExtrasSection({ modalityId, age, extraIds, onToggle }: ExtrasSec
             <li key={extra.id}>
               <label className={`flex items-center gap-2 text-sm ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
                 <input type="checkbox" checked={isSelected} disabled={disabled} onChange={() => onToggle(extra.id)} />
-                <span>{formatExtraLabel(extra)}</span>
+                <span>{formatExtraLabel(extra, overrides)}</span>
               </label>
               {reason && <p className="ml-6 text-xs text-amber-700">{reason}</p>}
             </li>

@@ -1,7 +1,10 @@
 import type { DiscountId, Modality, ModalityId } from '../../shared/types/catalog'
+import type { TariffOverrides } from '../../shared/types/tariffOverrides'
 import { MAX_SIMULTANEOUS_DISCOUNTS } from '../../shared/constants/discounts'
 import { MODALITIES } from '../../shared/constants/modalities'
+import { EMPTY_TARIFF_OVERRIDES } from '../../shared/constants/tariffOverrides'
 import { roundCurrency } from '../../shared/utils/money'
+import { resolveDiscountPercentage, resolveModalityPrice } from '../../shared/utils/tariffResolvers'
 import { getBlockingSelections, getDiscountOrThrow, isDiscountAllowedForCategory } from './discountCatalog'
 
 export interface CascadeStep {
@@ -15,6 +18,8 @@ export interface CascadeStep {
 export interface QuoteCalculationOptions {
   /** Importe contratado por el abonado referido, requerido para aplicar el descuento `referral`. */
   referralAmount?: number
+  /** Precios/porcentajes editados por el personal autorizado (capítulo 6). Si se omite, se usa el catálogo fijo. */
+  overrides?: TariffOverrides
 }
 
 export type QuoteCalculationResult =
@@ -70,6 +75,8 @@ export function calculateQuote(
   discountIds: DiscountId[],
   options: QuoteCalculationOptions = {},
 ): QuoteCalculationResult {
+  const overrides = options.overrides ?? EMPTY_TARIFF_OVERRIDES
+
   const modality = MODALITIES.find((m) => m.id === modalityId)
   if (!modality) {
     const error = `Modalidad desconocida: ${modalityId}`
@@ -77,7 +84,8 @@ export function calculateQuote(
     return { success: false, errors: [error] }
   }
 
-  if (modality.price === null) {
+  const basePrice = resolveModalityPrice(modality, overrides)
+  if (basePrice === null) {
     const error = `La modalidad "${modality.id}" no tiene precio fijo; usa calculateMonthlyPremiumPrice.`
     console.error(error)
     return { success: false, errors: [error] }
@@ -93,15 +101,15 @@ export function calculateQuote(
     .map((id) => getDiscountOrThrow(id))
     .sort((a, b) => a.order - b.order)
 
-  const basePrice = modality.price
   let remaining = basePrice
   const steps: CascadeStep[] = []
 
   for (const discount of orderedDiscounts) {
+    const percentage = resolveDiscountPercentage(discount, overrides)
     const base = discount.id === 'referral' ? (options.referralAmount as number) : remaining
-    const amount = roundCurrency(base * (discount.percentage / 100))
+    const amount = roundCurrency(base * (percentage / 100))
     remaining = roundCurrency(remaining - amount)
-    steps.push({ discountId: discount.id, percentage: discount.percentage, base, amount, remaining })
+    steps.push({ discountId: discount.id, percentage, base, amount, remaining })
   }
 
   return {

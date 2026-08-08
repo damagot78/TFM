@@ -251,3 +251,40 @@ La regla 4 de la especificación es explícita: un PIN incorrecto y un `agentId`
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` (164 tests: 34 nuevos de este capítulo) y `pnpm build` verificados en verde (incluyendo el nuevo proyecto `tsconfig.api.json`). Cobertura: 100% funciones, ≥98% líneas/branches/statements. Probado en navegador (Chromium headless) con la llamada de red interceptada: PIN incorrecto muestra el mensaje genérico enmascarado, PIN correcto identifica al agente y desbloquea la calculadora, "Cerrar sesión" vuelve a la pantalla de identificación.
+
+---
+
+## 6. Capítulo 6 — Actualizador de tarifas
+
+### El requisito que casi se pasa por alto
+
+`docs/reglas-de-negocio.md` §7 señala algo que no es un detalle menor: `calculateQuote`, `calculateExtras` y `calculateMonthlyPremiumPrice` (capítulos 2-3) importaban el catálogo (`MODALITIES`, `DISCOUNTS`, `EXTRAS`) como constantes fijas del módulo. Si este capítulo se hubiera limitado a construir una pantalla que guarda precios editados en `localStorage`, esos precios **nunca habrían llegado a afectar ningún cálculo real** — los tres motores habrían seguido leyendo el catálogo original, ajenos a lo guardado. Detectar esto *antes* de escribir el primer componente (no después, viendo que "algo no cuadra") es lo que separa un editor de tarifas que funciona de uno que solo aparenta funcionar.
+
+*Cómo contarlo en el vídeo:* es un caso de libro del Principio de Inversión de Dependencias (Módulo 1) aplicado sin necesidad de clases ni interfaces — los motores de cálculo no debían depender de una fuente de datos concreta (el catálogo fijo importado), sino de una fuente de datos abstracta (precio efectivo, venga de donde venga) que se les inyecta desde fuera.
+
+### Qué se construyó
+
+1. **`TariffOverrides`** (tipo compartido) + cuatro funciones resolutoras puras (`resolveModalityPrice`, `resolveDiscountPercentage`, `resolveExtraPrice`, `resolveMonthlyPremiumRate`): cada una devuelve el valor editado si existe, o el del catálogo fijo si no.
+2. **Los tres motores del capítulo 2-3, refactorizados** para aceptar un `overrides` opcional y usar las resolutoras en vez de leer `modality.price`/`discount.percentage`/`extra.price` directamente. Sin overrides (el caso de todos los tests de capítulos anteriores), el comportamiento es idéntico al original — verificado manteniendo en verde el caso dorado y el resto de tests ya existentes durante todo el refactor.
+3. **`tariffOverridesRepository`**: el único punto de acceso a `localStorage` para esta funcionalidad (patrón repositorio/adaptador), que además valida la forma de lo leído antes de confiar en ello.
+4. **`TariffAdminScreen`**: una pantalla con 4 secciones (modalidades, descuentos, extras, Premium Mensual) donde cada campo muestra el valor efectivo actual y se puede editar o restablecer al catálogo.
+5. **Navegación mínima en la cabecera** (`Calculadora` / `Tarifas`) sin librería de rutas — con dos pantallas, un `useState` es suficiente y no añade una dependencia para algo que no la necesita.
+6. Los tres componentes de la calculadora que muestran precios (`ModalitySelector`, `DiscountsSection`, `ExtrasSection`) también se actualizaron para leer el valor efectivo, no el del catálogo — si no, el desplegable de modalidad mostraría un precio distinto al que realmente se cobra, contradiciendo la propia propuesta de valor del proyecto ("guiada y explicada").
+
+### `localStorage` como límite de confianza, no como almacén ciego
+
+El análisis curricular (`docs/analisis-curricular.md`) señaló dos prácticas del Módulo 2 y el Módulo 9 que aplican directamente aquí: un patrón repositorio en vez de llamadas directas a `localStorage.getItem/setItem` desperdigadas por el código, y tratar lo leído de `localStorage` como una entrada externa que hay que validar, no como un dato de confianza. `localStorage` se puede editar a mano desde las herramientas de desarrollador del navegador — un valor corrupto, un tipo incorrecto o un id que ya no existe en el catálogo no deben poder colar un precio inválido en un cálculo de dinero. `sanitizeTariffOverrides` descarta silenciosamente (con log) cualquier entrada que no sea un número finito positivo o cuya clave no esté en el catálogo actual, y si el JSON completo está corrupto, la función registra el error y devuelve el catálogo por defecto en vez de romper la aplicación.
+
+*Cómo contarlo en el vídeo:* validar datos de `localStorage` antes de usarlos es, en esencia, el mismo principio que validar un payload HTTP (capítulo 5) — cualquier dato que cruza un límite de confianza (red, almacenamiento del navegador, entrada del usuario) se trata como potencialmente hostil o corrupto, nunca como correcto por defecto.
+
+### Decisiones a poder defender
+
+- **`overrides` como parámetro opcional, no obligatorio:** todas las llamadas existentes a los tres motores (capítulos 2-4) siguen funcionando sin cambios — un valor por defecto (`EMPTY_TARIFF_OVERRIDES`) hace que "sin overrides" sea indistinguible de "usar el catálogo fijo". Esto evitó tener que tocar ninguna llamada existente a `calculateQuote`/`calculateExtras`/`calculateMonthlyPremiumPrice` fuera de las tres funciones en sí.
+- **Cuatro funciones concretas en `TariffAdminScreen` en vez de una genérica:** el primer intento usaba una única función genérica `updateOverride<K>(sección, id, valor)` para las 4 secciones, pero TypeScript no puede probar que "omitir una clave genérica de un record" preserve el tipo original — el intento de generalizar producía errores de tipos reales, no solo ruido. Cuatro funciones concretas y algo repetitivas son más código, pero cada una es trivialmente correcta y typada sin trucos.
+- **Editar un campo y dejarlo vacío equivale a restablecerlo:** no hace falta un botón "Restablecer" para volver al catálogo — borrar el valor del campo ya lo hace, porque `withNumericOverride` trata cualquier valor no numérico o no positivo como "sin override". El botón "Restablecer" solo se muestra como atajo visible cuando ya hay un valor editado, no como el único camino.
+- **Los overrides se leen una vez al montar `useQuoteForm`, no en tiempo real:** si el personal edita una tarifa mientras la calculadora ya está abierta en otra pestaña del propio `view`, el cambio no se refleja hasta volver a entrar en la calculadora (cambiar de vista la desmonta y remonta). Es suficiente para una app de una sola pestaña con un único usuario a la vez, y evita añadir un sistema de sincronización en tiempo real que nada en el proyecto necesita.
+- **`FormField`/`formInputClasses` promovido a `shared/components/`:** hasta este capítulo solo lo usaba `quote-calculator`; en cuanto `tariff-admin` necesitó los mismos estilos de input, se movió a `shared/` siguiendo la Scope Rule al pie de la letra — no se sube a `shared/` por anticipación, solo cuando una segunda feature lo necesita de verdad.
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (201 tests: 37 nuevos de este capítulo) y `pnpm build` verificados en verde. Cobertura: 100% funciones, ≥98% líneas/branches/statements. Probado en navegador real (Chromium headless): editar el precio de una modalidad en "Tarifas", guardar, volver a "Calculadora" y confirmar que el desplegable y el resumen ya muestran y usan el precio nuevo — sin errores de consola.

@@ -157,4 +157,38 @@ describe('calculateExtras', () => {
     expect(consoleErrorSpy).toHaveBeenCalled()
     consoleErrorSpy.mockRestore()
   })
+
+  it('un precio de extra editado (overrides) sustituye al del catálogo', () => {
+    const result = calculateExtras('sm', ['locker'], {
+      age: 30,
+      activeDiscountIds: [],
+      overrides: {
+        modalityPrices: {},
+        discountPercentages: {},
+        extraPrices: { locker: 160 },
+        monthlyPremiumRates: {},
+      },
+    })
+
+    expect(result).toEqual({ success: true, items: [{ extraId: 'locker', price: 160, includedFree: false }], total: 160 })
+  })
+
+  it('un extra gratuito por inclusión (buggy anual) ignora el override de precio', () => {
+    const result = calculateExtras('sm_buggy', ['buggy_annual'], {
+      age: 30,
+      activeDiscountIds: [],
+      overrides: {
+        modalityPrices: {},
+        discountPercentages: {},
+        extraPrices: { buggy_annual: 2000 },
+        monthlyPremiumRates: {},
+      },
+    })
+
+    expect(result).toEqual({
+      success: true,
+      items: [{ extraId: 'buggy_annual', price: 0, includedFree: true }],
+      total: 0,
+    })
+  })
 })

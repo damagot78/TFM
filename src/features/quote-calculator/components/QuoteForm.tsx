@@ -25,7 +25,7 @@ export function QuoteForm() {
           onPhoneChange={form.setPhone}
         />
 
-        <ModalitySelector modalityId={form.modalityId} onSelect={form.setModalityId}>
+        <ModalitySelector modalityId={form.modalityId} onSelect={form.setModalityId} overrides={form.tariffOverrides}>
           {isMonthly && (
             <MonthlyPremiumPicker
               startDate={form.monthlyStartDate}
@@ -46,6 +46,7 @@ export function QuoteForm() {
             onToggle={form.toggleDiscount}
             referralAmount={form.referralAmount}
             onReferralAmountChange={form.setReferralAmount}
+            overrides={form.tariffOverrides}
           />
         )}
 
@@ -55,6 +56,7 @@ export function QuoteForm() {
             age={form.age}
             extraIds={form.extraIds}
             onToggle={form.toggleExtra}
+            overrides={form.tariffOverrides}
           />
         )}
       </div>

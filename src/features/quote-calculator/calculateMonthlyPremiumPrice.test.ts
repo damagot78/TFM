@@ -107,4 +107,26 @@ describe('previewMonthlyPremiumUnits', () => {
       { index: 0, status: 'pending', options: ['standard', 'high'] },
     ])
   })
+
+  it('con overrides, usa la tarifa editada en vez de la del catálogo', () => {
+    const overrides = { modalityPrices: {}, discountPercentages: {}, extraPrices: {}, monthlyPremiumRates: { high: 750 } }
+
+    expect(previewMonthlyPremiumUnits(new Date(2026, 0, 1), 1, overrides)).toEqual([
+      { index: 0, status: 'automatic', rate: 'high', price: 750 },
+    ])
+  })
+})
+
+describe('calculateMonthlyPremiumPrice con overrides', () => {
+  it('una tarifa editada sustituye a la del catálogo en el total', () => {
+    const overrides = { modalityPrices: {}, discountPercentages: {}, extraPrices: {}, monthlyPremiumRates: { high: 750 } }
+
+    const result = calculateMonthlyPremiumPrice(new Date(2026, 0, 1), 1, {}, overrides)
+
+    expect(result).toEqual({
+      success: true,
+      units: [{ index: 0, rate: 'high', price: 750, resolvedManually: false }],
+      total: 750,
+    })
+  })
 })

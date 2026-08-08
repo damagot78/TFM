@@ -1,7 +1,10 @@
 import type { DiscountId } from '../../../shared/types/catalog'
+import type { TariffOverrides } from '../../../shared/types/tariffOverrides'
 import { DISCOUNTS, MAX_SIMULTANEOUS_DISCOUNTS } from '../../../shared/constants/discounts'
+import { EMPTY_TARIFF_OVERRIDES } from '../../../shared/constants/tariffOverrides'
+import { resolveDiscountPercentage } from '../../../shared/utils/tariffResolvers'
 import { getBlockingSelections, getDiscountOrThrow } from '../discountCatalog'
-import { FormField, formInputClasses } from './FormField'
+import { FormField, formInputClasses } from '../../../shared/components/FormField'
 
 interface DiscountsSectionProps {
   discountIds: DiscountId[]
@@ -9,6 +12,7 @@ interface DiscountsSectionProps {
   onToggle: (id: DiscountId) => void
   referralAmount: string
   onReferralAmountChange: (value: string) => void
+  overrides?: TariffOverrides
 }
 
 function getDisabledReason(isEligible: boolean, blockers: DiscountId[], maxReached: boolean): string | null {
@@ -31,6 +35,7 @@ export function DiscountsSection({
   onToggle,
   referralAmount,
   onReferralAmountChange,
+  overrides = EMPTY_TARIFF_OVERRIDES,
 }: DiscountsSectionProps) {
   const maxReached = discountIds.length >= MAX_SIMULTANEOUS_DISCOUNTS
 
@@ -56,7 +61,7 @@ export function DiscountsSection({
               <label className={`flex items-center gap-2 text-sm ${disabled ? 'text-gray-400' : 'text-gray-800'}`}>
                 <input type="checkbox" checked={isSelected} disabled={disabled} onChange={() => onToggle(discount.id)} />
                 <span>
-                  {discount.name} ({discount.percentage}%)
+                  {discount.name} ({resolveDiscountPercentage(discount, overrides)}%)
                 </span>
               </label>
               {reason && <p className="ml-6 text-xs text-amber-700">{reason}</p>}

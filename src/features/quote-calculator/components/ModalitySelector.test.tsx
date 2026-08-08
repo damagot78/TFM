@@ -26,4 +26,21 @@ describe('ModalitySelector', () => {
 
     expect(onSelect).toHaveBeenCalledWith('sm')
   })
+
+  it('con un precio editado (overrides), muestra el precio editado en vez del catálogo', () => {
+    render(
+      <ModalitySelector
+        modalityId=""
+        onSelect={vi.fn()}
+        overrides={{
+          modalityPrices: { sm: 4500 },
+          discountPercentages: {},
+          extraPrices: {},
+          monthlyPremiumRates: {},
+        }}
+      />,
+    )
+
+    expect(screen.getByRole('option', { name: 'Golf Son Muntaner (SM) — 4500 €' })).toBeInTheDocument()
+  })
 })

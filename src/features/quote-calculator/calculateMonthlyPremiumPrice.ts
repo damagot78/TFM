@@ -1,9 +1,9 @@
 import type { SeasonRate } from '../../shared/types/catalog'
-import {
-  MONTHLY_PREMIUM_HIGH_SEASON_MONTHS,
-  MONTHLY_PREMIUM_RATES,
-} from '../../shared/constants/monthlyPremium'
+import type { TariffOverrides } from '../../shared/types/tariffOverrides'
+import { MONTHLY_PREMIUM_HIGH_SEASON_MONTHS } from '../../shared/constants/monthlyPremium'
+import { EMPTY_TARIFF_OVERRIDES } from '../../shared/constants/tariffOverrides'
 import { roundCurrency } from '../../shared/utils/money'
+import { resolveMonthlyPremiumRate } from '../../shared/utils/tariffResolvers'
 
 export interface MonthlyPremiumUnit {
   /** Posición del mes contratado (0 = primer mes desde la fecha de inicio). */
@@ -68,10 +68,14 @@ function classifyUnits(startDate: Date, months: 1 | 2 | 3): UnitClassification[]
 }
 
 /** Vista previa de cómo se tarifica cada mes contratado, sin resolver los cruces de temporada pendientes. */
-export function previewMonthlyPremiumUnits(startDate: Date, months: 1 | 2 | 3): MonthlyPremiumUnitPreview[] {
+export function previewMonthlyPremiumUnits(
+  startDate: Date,
+  months: 1 | 2 | 3,
+  overrides: TariffOverrides = EMPTY_TARIFF_OVERRIDES,
+): MonthlyPremiumUnitPreview[] {
   return classifyUnits(startDate, months).map((unit) =>
     unit.status === 'automatic'
-      ? { index: unit.index, status: 'automatic', rate: unit.rate, price: MONTHLY_PREMIUM_RATES[unit.rate] }
+      ? { index: unit.index, status: 'automatic', rate: unit.rate, price: resolveMonthlyPremiumRate(unit.rate, overrides) }
       : unit,
   )
 }
@@ -80,13 +84,19 @@ export function calculateMonthlyPremiumPrice(
   startDate: Date,
   months: 1 | 2 | 3,
   manualChoices: MonthlyPremiumManualChoices = {},
+  overrides: TariffOverrides = EMPTY_TARIFF_OVERRIDES,
 ): MonthlyPremiumPriceResult {
   const errors: string[] = []
   const units: MonthlyPremiumUnit[] = []
 
   for (const unit of classifyUnits(startDate, months)) {
     if (unit.status === 'automatic') {
-      units.push({ index: unit.index, rate: unit.rate, price: MONTHLY_PREMIUM_RATES[unit.rate], resolvedManually: false })
+      units.push({
+        index: unit.index,
+        rate: unit.rate,
+        price: resolveMonthlyPremiumRate(unit.rate, overrides),
+        resolvedManually: false,
+      })
       continue
     }
 
@@ -95,15 +105,17 @@ export function calculateMonthlyPremiumPrice(
       units.push({
         index: unit.index,
         rate: manualChoice,
-        price: MONTHLY_PREMIUM_RATES[manualChoice],
+        price: resolveMonthlyPremiumRate(manualChoice, overrides),
         resolvedManually: true,
       })
       continue
     }
 
+    const highRate = resolveMonthlyPremiumRate('high', overrides)
+    const standardRate = resolveMonthlyPremiumRate('standard', overrides)
     errors.push(
       `El mes contratado #${unit.index + 1} cruza dos meses naturales con tarifas distintas ` +
-        `(alta ${MONTHLY_PREMIUM_RATES.high} € / estándar ${MONTHLY_PREMIUM_RATES.standard} €); ` +
+        `(alta ${highRate} € / estándar ${standardRate} €); ` +
         'el agente debe elegir manualmente cuál aplicar.',
     )
   }

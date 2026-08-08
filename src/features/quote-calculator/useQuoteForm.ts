@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { DiscountId, ExtraId, ModalityId, SeasonRate } from '../../shared/types/catalog'
+import type { TariffOverrides } from '../../shared/types/tariffOverrides'
 import { MODALITIES } from '../../shared/constants/modalities'
+import { loadTariffOverrides } from '../../shared/utils/tariffOverridesRepository'
 import { calculateAge } from './calculateAge'
 import { getEligibleDiscounts } from './ageEligibility'
 import { calculateQuote, type QuoteCalculationResult } from './calculateQuote'
@@ -38,6 +40,7 @@ export interface UseQuoteFormResult {
   quote: QuoteState
   extras: ExtrasCalculationResult
   grandTotal: number
+  tariffOverrides: TariffOverrides
   setSubscriberName: (value: string) => void
   setBirthDate: (value: string) => void
   setEmail: (value: string) => void
@@ -63,6 +66,11 @@ export function useQuoteForm(): UseQuoteFormResult {
   const [discountIds, setDiscountIds] = useState<DiscountId[]>([])
   const [referralAmount, setReferralAmount] = useState('')
   const [extraIds, setExtraIds] = useState<ExtraId[]>([])
+
+  // Se lee una vez al montar el formulario; si el personal edita tarifas en
+  // otra pantalla, el cambio se recoge al volver a montar (navegación entre
+  // pantallas), sin necesidad de sincronización en tiempo real.
+  const [tariffOverrides] = useState<TariffOverrides>(() => loadTariffOverrides())
 
   const age = useMemo(() => (birthDate ? calculateAge(new Date(birthDate)) : null), [birthDate])
 
@@ -102,8 +110,8 @@ export function useQuoteForm(): UseQuoteFormResult {
     if (!selectedModality || selectedModality.category !== 'monthly' || !monthlyStartDate) {
       return []
     }
-    return previewMonthlyPremiumUnits(new Date(monthlyStartDate), monthlyMonths)
-  }, [selectedModality, monthlyStartDate, monthlyMonths])
+    return previewMonthlyPremiumUnits(new Date(monthlyStartDate), monthlyMonths, tariffOverrides)
+  }, [selectedModality, monthlyStartDate, monthlyMonths, tariffOverrides])
 
   const quote = useMemo<QuoteState>(() => {
     if (!selectedModality) {
@@ -116,23 +124,43 @@ export function useQuoteForm(): UseQuoteFormResult {
       }
       return {
         kind: 'monthly',
-        result: calculateMonthlyPremiumPrice(new Date(monthlyStartDate), monthlyMonths, monthlyManualChoices),
+        result: calculateMonthlyPremiumPrice(
+          new Date(monthlyStartDate),
+          monthlyMonths,
+          monthlyManualChoices,
+          tariffOverrides,
+        ),
       }
     }
 
     const parsedReferralAmount = referralAmount === '' ? undefined : Number(referralAmount)
     return {
       kind: 'cascade',
-      result: calculateQuote(selectedModality.id, discountIds, { referralAmount: parsedReferralAmount }),
+      result: calculateQuote(selectedModality.id, discountIds, {
+        referralAmount: parsedReferralAmount,
+        overrides: tariffOverrides,
+      }),
     }
-  }, [selectedModality, monthlyStartDate, monthlyMonths, monthlyManualChoices, discountIds, referralAmount])
+  }, [
+    selectedModality,
+    monthlyStartDate,
+    monthlyMonths,
+    monthlyManualChoices,
+    discountIds,
+    referralAmount,
+    tariffOverrides,
+  ])
 
   const extras = useMemo<ExtrasCalculationResult>(() => {
     if (!selectedModality) {
       return { success: true, items: [], total: 0 }
     }
-    return calculateExtras(selectedModality.id, extraIds, { age, activeDiscountIds: discountIds })
-  }, [selectedModality, extraIds, age, discountIds])
+    return calculateExtras(selectedModality.id, extraIds, {
+      age,
+      activeDiscountIds: discountIds,
+      overrides: tariffOverrides,
+    })
+  }, [selectedModality, extraIds, age, discountIds, tariffOverrides])
 
   const quoteTotal = quote.kind !== 'none' && quote.result.success ? quote.result.total : 0
   const extrasTotal = extras.success ? extras.total : 0
@@ -156,6 +184,7 @@ export function useQuoteForm(): UseQuoteFormResult {
     quote,
     extras,
     grandTotal,
+    tariffOverrides,
     setSubscriberName,
     setBirthDate,
     setEmail,

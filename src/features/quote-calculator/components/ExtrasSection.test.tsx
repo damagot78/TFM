@@ -44,4 +44,23 @@ describe('ExtrasSection', () => {
     // el ya seleccionado sigue habilitado para poder desmarcarlo
     expect(screen.getByLabelText(/Custodia de Palos/)).not.toBeDisabled()
   })
+
+  it('con un precio editado (overrides), muestra el precio editado en vez del catálogo', () => {
+    render(
+      <ExtrasSection
+        modalityId="sm"
+        age={30}
+        extraIds={[]}
+        onToggle={vi.fn()}
+        overrides={{
+          modalityPrices: {},
+          discountPercentages: {},
+          extraPrices: { locker: 160 },
+          monthlyPremiumRates: {},
+        }}
+      />,
+    )
+
+    expect(screen.getByText('Alquiler de Taquilla — 160 €')).toBeInTheDocument()
+  })
 })

@@ -108,4 +108,17 @@ describe('DiscountsSection', () => {
 
     expect(onReferralAmountChange).toHaveBeenCalledWith('5000')
   })
+
+  it('con un porcentaje editado (overrides), muestra el porcentaje editado en vez del catálogo', () => {
+    renderSection({
+      overrides: {
+        modalityPrices: {},
+        discountPercentages: { week: 20 },
+        extraPrices: {},
+        monthlyPremiumRates: {},
+      },
+    })
+
+    expect(screen.getByText('Lunes a Viernes (20%)')).toBeInTheDocument()
+  })
 })

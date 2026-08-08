@@ -5,6 +5,7 @@ import App from './App'
 afterEach(() => {
   vi.unstubAllGlobals()
   sessionStorage.clear()
+  localStorage.clear()
 })
 
 function identify() {
@@ -49,5 +50,26 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(screen.getByText('Identificación de personal')).toBeInTheDocument()
+  })
+
+  it('el enlace "Tarifas" de la cabecera muestra el actualizador de tarifas en vez de la calculadora', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ valid: true, agentName: 'Agente 1' }) }),
+    )
+
+    render(<App />)
+    identify()
+    await waitFor(() => expect(screen.getByText('Agente 1')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tarifas' }))
+
+    expect(screen.getByRole('heading', { name: 'Actualizador de tarifas' })).toBeInTheDocument()
+    expect(screen.queryByText('Datos del abonado')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Calculadora' }))
+
+    expect(screen.getByText('Datos del abonado')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Actualizador de tarifas' })).not.toBeInTheDocument()
   })
 })

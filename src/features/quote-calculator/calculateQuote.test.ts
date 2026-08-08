@@ -149,4 +149,53 @@ describe('calculateQuote', () => {
     expect(consoleErrorSpy).toHaveBeenCalled()
     consoleErrorSpy.mockRestore()
   })
+
+  it('un precio de modalidad editado (overrides) sustituye al del catálogo', () => {
+    const result = calculateQuote('sm', [], {
+      overrides: {
+        modalityPrices: { sm: 5000 },
+        discountPercentages: {},
+        extraPrices: {},
+        monthlyPremiumRates: {},
+      },
+    })
+
+    expect(result).toEqual({
+      success: true,
+      modalityId: 'sm',
+      basePrice: 5000,
+      steps: [],
+      total: 5000,
+      savings: 0,
+    })
+  })
+
+  it('un porcentaje de descuento editado (overrides) se usa en la cascada', () => {
+    const result = calculateQuote('sm', ['week'], {
+      overrides: {
+        modalityPrices: {},
+        discountPercentages: { week: 20 },
+        extraPrices: {},
+        monthlyPremiumRates: {},
+      },
+    })
+
+    expect(result).toEqual({
+      success: true,
+      modalityId: 'sm',
+      basePrice: 4400,
+      steps: [{ discountId: 'week', percentage: 20, base: 4400, amount: 880, remaining: 3520 }],
+      total: 3520,
+      savings: 880,
+    })
+  })
+
+  it('sin overrides explícitos, el resultado es idéntico al catálogo fijo (no rompe el caso dorado)', () => {
+    const withEmptyOverrides = calculateQuote('sm', ['week', 'afternoon', 'family'], {
+      overrides: { modalityPrices: {}, discountPercentages: {}, extraPrices: {}, monthlyPremiumRates: {} },
+    })
+    const withoutOverrides = calculateQuote('sm', ['week', 'afternoon', 'family'])
+
+    expect(withEmptyOverrides).toEqual(withoutOverrides)
+  })
 })

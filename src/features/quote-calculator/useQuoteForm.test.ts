@@ -1,6 +1,11 @@
 import { act, renderHook } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+import { TARIFF_OVERRIDES_STORAGE_KEY } from '../../shared/utils/tariffOverridesRepository'
 import { useQuoteForm } from './useQuoteForm'
+
+afterEach(() => {
+  localStorage.clear()
+})
 
 describe('useQuoteForm', () => {
   it('empieza sin modalidad, sin edad y con cotización vacía', () => {
@@ -160,5 +165,22 @@ describe('useQuoteForm', () => {
     act(() => result.current.toggleExtra('locker'))
 
     expect(result.current.extraIds).toEqual([])
+  })
+
+  it('un precio editado y guardado en localStorage llega hasta el total calculado', () => {
+    localStorage.setItem(
+      TARIFF_OVERRIDES_STORAGE_KEY,
+      JSON.stringify({
+        modalityPrices: { sm: 4500 },
+        discountPercentages: {},
+        extraPrices: {},
+        monthlyPremiumRates: {},
+      }),
+    )
+
+    const { result } = renderHook(() => useQuoteForm())
+    act(() => result.current.setModalityId('sm'))
+
+    expect(result.current.grandTotal).toBe(4500)
   })
 })

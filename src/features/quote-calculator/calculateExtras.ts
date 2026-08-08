@@ -1,6 +1,9 @@
 import type { DiscountId, Extra, ExtraId, ModalityId } from '../../shared/types/catalog'
+import type { TariffOverrides } from '../../shared/types/tariffOverrides'
 import { MIN_AGE_FOR_BUGGY, MODALITIES_WITH_FREE_BUGGY_ANNUAL } from '../../shared/constants/extras'
 import { MODALITIES } from '../../shared/constants/modalities'
+import { EMPTY_TARIFF_OVERRIDES } from '../../shared/constants/tariffOverrides'
+import { resolveExtraPrice } from '../../shared/utils/tariffResolvers'
 import { isAdult } from './ageEligibility'
 import {
   getBlockingGroupSelection,
@@ -18,6 +21,8 @@ export interface ExtraLineItem {
 export interface ExtrasCalculationContext {
   age: number | null
   activeDiscountIds: readonly DiscountId[]
+  /** Precios editados por el personal autorizado (capítulo 6). Si se omite, se usa el catálogo fijo. */
+  overrides?: TariffOverrides
 }
 
 export type ExtrasCalculationResult =
@@ -69,7 +74,8 @@ function priceExtra(
     }
   }
 
-  return { extraId: extra.id, price: extra.price, includedFree: false }
+  const overrides = context.overrides ?? EMPTY_TARIFF_OVERRIDES
+  return { extraId: extra.id, price: resolveExtraPrice(extra, overrides), includedFree: false }
 }
 
 export function calculateExtras(

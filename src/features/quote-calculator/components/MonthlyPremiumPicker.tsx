@@ -1,7 +1,7 @@
 import type { SeasonRate } from '../../../shared/types/catalog'
 import { MONTHLY_PREMIUM_RATES } from '../../../shared/constants/monthlyPremium'
 import type { MonthlyPremiumManualChoices, MonthlyPremiumUnitPreview } from '../calculateMonthlyPremiumPrice'
-import { FormField, formInputClasses } from './FormField'
+import { FormField, formInputClasses } from '../../../shared/components/FormField'
 
 const RATE_LABELS: Record<SeasonRate, string> = { high: 'Alta', standard: 'Estándar' }
 const MONTH_OPTIONS: readonly (1 | 2 | 3)[] = [1, 2, 3]

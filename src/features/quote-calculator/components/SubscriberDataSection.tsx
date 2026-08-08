@@ -1,4 +1,4 @@
-import { FormField, formInputClasses } from './FormField'
+import { FormField, formInputClasses } from '../../../shared/components/FormField'
 
 interface SubscriberDataSectionProps {
   subscriberName: string
