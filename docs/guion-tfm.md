@@ -127,3 +127,39 @@ La especificación incluye un caso ya validado con datos reales: abono `sm` (4.4
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` (21 tests: 12 del motor de cascada + 8 de `monthly_premium` + 1 de humo del capítulo 1) y `pnpm build` verificados en verde.
+
+---
+
+## 3. Capítulo 3 — Validación de edad y extras con exclusividad de grupo
+
+### Qué se construyó
+
+Tres piezas más de lógica de negocio, cada una con su propio ciclo TDD, separadas del motor de cascada del capítulo 2:
+
+1. **`calculateAge`** — edad en años cumplidos a partir de la fecha de nacimiento y una fecha de referencia.
+2. **`ageEligibility`** (`isDiscountEligibleByAge`, `filterDiscountsEligibleByAge`, `isAdult`) — qué descuentos de la cascada son elegibles según la edad del abonado, y la regla de "adulto" para beneficios como el cargador eléctrico gratuito.
+3. **`calculateExtras`** — el motor de extras: exclusividad de grupo (`storage`, `buggy`), restricciones por modalidad y por edad, y las gratuidades (Buggy anual incluido en ciertas modalidades, cargador gratis en Premium para adultos).
+
+*Cómo contarlo en el vídeo:* el capítulo 2 dejó dicho explícitamente que el motor de cascada "no filtra por edad todavía" — este capítulo cierra ese hueco con un módulo de edad independiente, y añade el segundo bloque de precio de la cotización (los extras), que hasta ahora no existía.
+
+### Por qué la edad es un módulo aparte del motor de cascada
+
+El motor de cascada (capítulo 2) recibe una lista de descuentos ya elegibles y solo se ocupa de aplicarlos en el orden correcto. Decidir *qué* descuentos son elegibles según la edad del abonado es una responsabilidad distinta — un filtro que se ejecuta antes, para construir las opciones que se le ofrecen al agente en la UI (capítulo 4). Mantenerlas separadas evita una función que mezcle "qué se puede elegir" con "cómo se calcula lo elegido", y permite testear cada regla de forma aislada.
+
+### Una regla de negocio que cambió a mitad de capítulo: "adulto" para el cargador gratuito
+
+La especificación original decía "Adulto (≥18 años, o sin descuento infantil/junior activo)", una redacción que admitía dos lecturas incompatibles (¿"o" como alternativa real, o como aclaración?). Antes de implementarlo se preguntó explícitamente y se corrigió la especificación con la regla real: **si se conoce la fecha de nacimiento, la edad manda siempre** (18+ es adulto, por debajo no, sin excepciones); **solo cuando no se conoce la fecha de nacimiento** se usa el descuento Niño/Junior activo como indicio para presumir la edad. Un abonado de 15 años sin descuento infantil seleccionado sigue sin ser adulto.
+
+*Cómo contarlo en el vídeo:* este es un ejemplo concreto de por qué el TDD y el trabajo dirigido con IA no significan "aceptar la primera interpretación razonable" — una regla de negocio ambigua se detectó al leer la especificación con la intención de escribir un test para ella, se preguntó antes de asumir, y el documento de reglas de negocio se corrigió como fuente de verdad antes de tocar código (Módulo 1: la especificación manda, no se inventan variantes).
+
+### Decisiones a poder defender
+
+- **`sub25` sin edad mínima:** la tabla de descuentos dice "hasta 25 años" sin fijar un suelo, así que se implementó literalmente como un tope máximo sin mínimo, en vez de asumir un límite inferior no especificado (p. ej. 18). Esto significa que, por edad, un niño de 10 años es elegible tanto para `child` como para `sub25` a la vez — no es una contradicción, porque la matriz de incompatibilidades del capítulo 2 ya impide seleccionar ambos a la vez; el filtro de edad solo decide qué se *ofrece*, no qué combinación final es válida.
+- **Edad desconocida (`null`) falla cerrado para descuentos con rango de edad:** si no se conoce la fecha de nacimiento, ningún descuento con restricción de edad se considera elegible (en vez de asumirlo permitido). Es una decisión de seguridad de negocio: sin dato, no se aplica un descuento que depende de un dato que no se tiene.
+- **Extras de Buggy bloqueados con edad desconocida:** misma lógica que el punto anterior — la regla "menores de 16 no pueden usar Buggy" solo se puede verificar si se conoce la edad, así que sin fecha de nacimiento el extra se rechaza en vez de permitirse por defecto.
+- **`getDiscountOrThrow` extraído a `discountCatalog.ts`:** al escribir el segundo módulo que necesitaba buscar un descuento por ID (`ageEligibility.ts`, además de `calculateQuote.ts`) apareció código duplicado; se extrajo a un archivo compartido dentro de la propia feature `quote-calculator` en vez de copiarlo, sin necesidad de subirlo a `shared/` porque de momento solo lo usa esta feature.
+- **El cargador eléctrico sigue siendo un extra seleccionable, no algo "automático":** en vez de añadirlo solo a las modalidades Premium sin que el agente lo pida, se modela como cualquier otro extra pero con precio 0 € cuando se cumplen las condiciones (Premium + adulto). Mantiene una única forma de seleccionar extras en toda la aplicación, en vez de un caso especial en la UI.
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (55 tests: 34 nuevos de este capítulo — 4 de `calculateAge`, 12 de elegibilidad por edad, 18 de extras — más los 21 de capítulos anteriores) y `pnpm build` verificados en verde.

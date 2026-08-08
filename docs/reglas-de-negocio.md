@@ -108,7 +108,11 @@ Los extras del mismo grupo (`storage`, `buggy`) son mutuamente excluyentes. Bugg
 
 - Edad = fecha actual − fecha de nacimiento.
 - Menores de 16 años: no pueden contratar ni usar Buggy (extra desactivado automáticamente).
-- Adulto (≥18 años, o sin descuento infantil/junior activo) → elegible para cargador eléctrico gratuito en Premium.
+- **Regla de "Adulto" para el cargador eléctrico gratuito en Premium** (redacción anterior de este documento era ambigua/incorrecta — corregido aquí):
+  - Si se conoce la fecha de nacimiento → adulto si y solo si `edad ≥ 18`. El descuento Niño/Junior seleccionado no interviene en este caso (si hay fecha de nacimiento, la edad manda).
+  - Si **no** se conoce la fecha de nacimiento → adulto si y solo si **no** hay un descuento Niño o Junior seleccionado (se asume adulto por defecto salvo indicio explícito de que es menor).
+  - En pseudocódigo: `isAdult = (edad !== null && edad >= 18) || (edad === null && !tieneDescuentoNiñoOJunior)`.
+  - Ejemplo que distingue esto de una interpretación "OR" simple: un abonado con fecha de nacimiento indicando 15 años, sin ningún descuento Niño/Junior seleccionado, **no** es adulto (la edad conocida manda) — no debe recibir el cargador gratuito aunque no tenga esos descuentos activos.
 
 ## 5. Pago (alcance v1: solo modo anual)
 

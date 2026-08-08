@@ -1,7 +1,8 @@
-import type { Discount, DiscountId, Modality, ModalityId } from '../../shared/types/catalog'
-import { DISCOUNTS, MAX_SIMULTANEOUS_DISCOUNTS } from '../../shared/constants/discounts'
+import type { DiscountId, Modality, ModalityId } from '../../shared/types/catalog'
+import { MAX_SIMULTANEOUS_DISCOUNTS } from '../../shared/constants/discounts'
 import { MODALITIES } from '../../shared/constants/modalities'
 import { roundCurrency } from '../../shared/utils/money'
+import { getDiscountOrThrow } from './discountCatalog'
 
 export interface CascadeStep {
   discountId: DiscountId
@@ -26,14 +27,6 @@ export type QuoteCalculationResult =
       savings: number
     }
   | { success: false; errors: string[] }
-
-function getDiscountOrThrow(id: DiscountId): Discount {
-  const discount = DISCOUNTS.find((d) => d.id === id)
-  if (!discount) {
-    throw new Error(`Descuento desconocido en el catálogo: ${id}`)
-  }
-  return discount
-}
 
 function validateDiscountSelection(
   modality: Modality,
