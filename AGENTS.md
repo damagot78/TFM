@@ -80,8 +80,9 @@ Nunca validar el PIN en el cliente. Siempre a través de `api/validate-pin.ts`, 
 
 ## Control de versiones
 
-- **Commits:** uno al final de cada capítulo (o subcapítulo) en cuanto los tests estén en verde. Mensajes descriptivos, con línea de coautoría de Claude.
-- **Push a GitHub:** nunca automático. Siempre se propone qué se va a subir y se espera confirmación explícita del alumno antes de hacer `git push`.
+- **Commits:** uno al final de cada capítulo (o subcapítulo), en cuanto los tests estén en verde. **Nunca automático**: se propone el mensaje de commit y se espera confirmación explícita del alumno antes de ejecutar `git commit`. Mensajes descriptivos, con línea de coautoría de Claude.
+- **Push a GitHub:** igual que el commit — **nunca automático**. Siempre se propone qué se va a subir y se espera confirmación explícita antes de `git push`.
+- **Dónde se ejecutan:** commits y push se hacen desde esta sesión (la que trabaja directamente sobre el proyecto en VS Code), no desde otras sesiones de consulta/revisión que puedan tener acceso de lectura a la carpeta.
 - **Rama:** se trabaja directo en `main`, sin ramas por feature.
 
 ## Guión del TFM — actualización obligatoria por capítulo
