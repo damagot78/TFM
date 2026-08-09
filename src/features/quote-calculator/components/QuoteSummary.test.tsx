@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import type { QuoteState } from '../useQuoteForm'
 import { QuoteSummary } from './QuoteSummary'
 
@@ -104,5 +104,36 @@ describe('QuoteSummary', () => {
 
     expect(screen.getByText('Total')).toBeInTheDocument()
     expect(screen.getByText('99.90 €')).toBeInTheDocument()
+  })
+
+  it('sin cotización exportable, no muestra el botón de añadir a exportación', () => {
+    render(<QuoteSummary quote={{ kind: 'none' }} extras={EMPTY_EXTRAS} grandTotal={0} canExport={false} />)
+
+    expect(screen.queryByRole('button', { name: /Añadir a exportación/ })).not.toBeInTheDocument()
+  })
+
+  it('con una cotización exportable, el botón llama a onExport al pulsarlo', () => {
+    const onExport = vi.fn()
+    render(
+      <QuoteSummary quote={{ kind: 'none' }} extras={EMPTY_EXTRAS} grandTotal={0} canExport onExport={onExport} />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Añadir a exportación/ }))
+
+    expect(onExport).toHaveBeenCalled()
+  })
+
+  it('muestra la confirmación solo cuando exportedMessageVisible es true', () => {
+    render(
+      <QuoteSummary
+        quote={{ kind: 'none' }}
+        extras={EMPTY_EXTRAS}
+        grandTotal={0}
+        canExport
+        exportedMessageVisible
+      />,
+    )
+
+    expect(screen.getByRole('status')).toHaveTextContent('exportación')
   })
 })

@@ -4,8 +4,9 @@ import { useAgentSession } from './context/useAgentSession'
 import { QuoteForm } from './features/quote-calculator/components/QuoteForm'
 import { AgentIdentificationScreen } from './features/staff-identification/AgentIdentificationScreen'
 import { TariffAdminScreen } from './features/tariff-admin/TariffAdminScreen'
+import { ExcelExportScreen } from './features/excel-export/ExcelExportScreen'
 
-type View = 'quote' | 'tariffs'
+type View = 'quote' | 'tariffs' | 'export'
 
 function AppContent() {
   const { agentName, identify, signOut } = useAgentSession()
@@ -35,6 +36,13 @@ function AppContent() {
             >
               Tarifas
             </button>
+            <button
+              type="button"
+              onClick={() => setView('export')}
+              className={view === 'export' ? 'font-semibold text-gray-900' : 'text-gray-500 hover:text-gray-700'}
+            >
+              Exportar
+            </button>
           </nav>
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-600">
@@ -44,7 +52,9 @@ function AppContent() {
           </button>
         </div>
       </header>
-      {view === 'quote' ? <QuoteForm /> : <TariffAdminScreen />}
+      {view === 'quote' && <QuoteForm agentName={agentName} />}
+      {view === 'tariffs' && <TariffAdminScreen />}
+      {view === 'export' && <ExcelExportScreen />}
     </main>
   )
 }

@@ -288,3 +288,49 @@ El análisis curricular (`docs/analisis-curricular.md`) señaló dos prácticas 
 ### Verificación
 
 `pnpm lint`, `pnpm test:run` (201 tests: 37 nuevos de este capítulo) y `pnpm build` verificados en verde. Cobertura: 100% funciones, ≥98% líneas/branches/statements. Probado en navegador real (Chromium headless): editar el precio de una modalidad en "Tarifas", guardar, volver a "Calculadora" y confirmar que el desplegable y el resumen ya muestran y usan el precio nuevo — sin errores de consola.
+
+---
+
+## 7. Capítulo 7 — Exportación a Excel
+
+### Qué se construyó
+
+El último bloque de lógica de negocio del núcleo v1: la posibilidad de añadir cada cotización ya calculada a una lista acumulada, y descargarla como un `.xlsx` real. Cinco piezas, cada una con su propio ciclo TDD:
+
+1. **`ExportedQuote`** (tipo compartido) — el snapshot congelado de una cotización en el momento en que se añade a la exportación.
+2. **`buildExportedQuote`** — función pura que convierte el estado actual del formulario en ese snapshot, devolviendo `null` si la cotización no está en un estado válido para exportar.
+3. **`exportedQuotesRepository`** — mismo patrón repositorio/validación que `tariffOverridesRepository` (capítulo 6), acumulando cotizaciones en `localStorage` hasta que se exportan o se borran.
+4. **`generateQuotesWorkbook`** — genera el libro `.xlsx` de verdad con `exceljs`, una fila por cotización.
+5. **UI**: botón "Añadir a exportación" en el resumen de la calculadora + pantalla `ExcelExportScreen` con la lista acumulada, "Quitar" por fila, "Vaciar lista" y "Descargar Excel".
+
+*Cómo contarlo en el vídeo:* con este capítulo se cierra el ciclo completo de la herramienta — calcular, identificar al agente, ajustar tarifas si hace falta, y dejar constancia de cada cotización en un formato que el club ya usa (Excel), sin depender de que nadie copie números a mano.
+
+### Un dato de seguridad que no estaba en el radar al principio: Formula Injection
+
+El análisis curricular (`docs/analisis-curricular.md`, Módulo 9) señaló un riesgo específico de este capítulo: si el nombre de un abonado empieza por `=`, `+`, `-` o `@`, Excel puede interpretarlo como el inicio de una fórmula al abrir el archivo — un campo de texto libre convertido en código ejecutable sin que el usuario lo pida. `sanitizeExcelCellValue` neutraliza esto anteponiendo una comilla simple a cualquier valor de texto libre (nombre, email del abonado) que empiece por uno de esos caracteres, forzando que Excel lo trate como texto. Se verificó no solo con un test unitario que inspecciona el `Buffer` generado, sino con un archivo `.xlsx` real descargado en un navegador y reabierto con `exceljs` para confirmar que la celda queda como texto (`ValueType.String`), no como fórmula (`ValueType.Formula`).
+
+*Cómo contarlo en el vídeo:* es la aplicación más concreta de "no confiar en el cliente" de todo el proyecto — el dato no viene de un atacante externo, viene de un campo de formulario normal, pero el destino (un archivo que se abre en Excel) lo convierte en una superficie de ataque real si no se trata como texto no confiable.
+
+### El bundle que se disparó a 1 MB, y cómo se resolvió
+
+Al instalar `exceljs` y ejecutar `pnpm build`, el bundle de JavaScript pasó de ~220 KB a más de 1,1 MB — `exceljs` es una librería pesada (maneja XML, compresión ZIP y estilos internamente). La solución no fue buscar una librería más pequeña, sino reconocer que el 100% de los usuarios de la app cargan ese peso en cada visita aunque el 90% del tiempo estén usando la calculadora, no la exportación. Cambiar el `import` estático de `exceljs` por uno dinámico (`await import('exceljs')`) dentro de `generateQuotesWorkbook` hace que Vite separe `exceljs` en su propio chunk, cargado solo la primera vez que alguien pulsa "Descargar Excel". El bundle principal volvió a ~230 KB; el chunk de `exceljs` (930 KB) sigue siendo grande, pero diferido, no en el camino crítico de carga inicial.
+
+*Cómo contarlo en el vídeo:* es una decisión de rendimiento basada en medir primero (`pnpm build` avisa del tamaño) y entender el *por qué* antes de actuar — no todo el código de una aplicación necesita cargarse en el primer segundo, y separar por uso real es más efectivo que perseguir una librería "más ligera" que quizá no exista.
+
+### Se detectó y se corrigió una dependencia transitiva vulnerable, no reportada por instalar `exceljs`
+
+`pnpm audit` marcó una vulnerabilidad moderada en `uuid` (una dependencia interna de `exceljs`, no elegida directamente). En vez de ignorarla o esperar a que `exceljs` publicara una versión que la arreglara, se forzó la versión parcheada de `uuid` con `pnpm-workspace.yaml` (`overrides`), sin tocar el código de la aplicación. `pnpm audit` quedó en cero vulnerabilidades tras el cambio.
+
+*Cómo contarlo en el vídeo:* instalar una dependencia no es solo "añadirla al `package.json`" — incluye revisar lo que esa dependencia trae consigo, y `pnpm audit` es la herramienta que lo hace visible antes de que se convierta en un problema real.
+
+### Decisiones a poder defender
+
+- **Snapshot congelado, no un enlace vivo a la cotización:** `buildExportedQuote` copia los valores en el momento de añadir, no una referencia al estado del formulario. Si el agente sigue editando la cotización después de añadirla (o si se editan las tarifas más tarde), la fila ya exportada no cambia — es un registro histórico de lo que se cotizó en ese momento, coherente con lo que se le mostró al cliente.
+- **Un `null` en vez de una excepción cuando la cotización no es exportable:** igual que en los motores de cálculo (capítulos 2-3), `buildExportedQuote` modela "no hay nada válido que exportar todavía" como un resultado explícito (`null`), no como un error. La UI usa ese `null` directamente para decidir si mostrar el botón, sin `try/catch`.
+- **La cascada de descuentos y el desglose de `monthly_premium` se resumen en una columna de texto, no en columnas dinámicas:** el número de descuentos o meses varía por cotización (0 a 3 descuentos, 1 a 3 meses); en vez de columnas que aparecen y desaparecen según la fila, cada cotización resume su desglose en una cadena legible (`"Lunes a Viernes (15%): −660,00 €; ..."`) en una única columna — más fácil de leer en una hoja con muchas filas que un `.xlsx` con columnas dispersas.
+- **`localStorage` como cola de exportación, no memoria volátil:** si el agente recarga la página a medias de una sesión de cotizaciones, las ya añadidas no se pierden — mismo patrón de persistencia que las tarifas editadas (capítulo 6), por consistencia con el resto de la aplicación.
+- **El botón "Añadir a exportación" no acepta `null`:** en vez de una comprobación `if (!exportableQuote) return` dentro del manejador de clic, `QuoteForm` solo le pasa un `onExport` a `QuoteSummary` cuando ya existe una cotización exportable (`exportableQuote ? () => handleExport(exportableQuote) : undefined`). El propio tipo de TypeScript garantiza que `handleExport` nunca se llama con `null` — no hace falta un guardia en tiempo de ejecución para algo que la UI ya impide que ocurra.
+
+### Verificación
+
+`pnpm lint`, `pnpm test:run` (248 tests: 47 nuevos de este capítulo) y `pnpm build` verificados en verde. Cobertura: 100% funciones, ≥97% líneas/branches/statements. `pnpm audit`: 0 vulnerabilidades. Probado en navegador real (Chromium headless) de principio a fin: caso dorado con un nombre de abonado `=2+2`, añadido a la exportación, descargado como `.xlsx` real y reabierto con `exceljs` para confirmar el contenido — fila con los tres descuentos y el total correctos, y el nombre neutralizado como texto (`'=2+2`), no como fórmula.

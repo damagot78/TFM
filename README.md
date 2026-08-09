@@ -20,7 +20,7 @@ Una calculadora guiada y explicada: no solo devuelve el importe final, también 
 - Extras con exclusividad de grupo (custodia de palos / buggy).
 - Un solo modo de pago anual para las modalidades `Standard`/`Premium`, más la modalidad `monthly_premium` (mes a mes, hasta 3 meses, tarifa por temporada — ver `docs/reglas-de-negocio.md`). Interfaz en español.
 - Identificación de personal (PIN, lista fija de 3-4 agentes), validada en servidor — registra quién realiza cada cotización.
-- Exportación a Excel de las cotizaciones generadas (agente, modalidad, descuentos, extras, edad, total, y para `monthly_premium` la tarifa aplicada por mes).
+- Exportación a Excel de las cotizaciones generadas (agente, nombre y email del abonado, edad, modalidad, descuentos, extras, total, y para `monthly_premium` la tarifa aplicada por mes).
 - Actualizador de tarifas: edición del precio de los conceptos del catálogo fijo (no se añaden/eliminan productos ni reglas).
 
 ### Roadmap más allá del v1
@@ -89,8 +89,12 @@ src/
 │   │   └── components/                   # formulario y resumen (cap. 4)
 │   ├── staff-identification/
 │   │   └── AgentIdentificationScreen.tsx # pantalla de agente + PIN (cap. 5)
-│   └── tariff-admin/
-│       └── TariffAdminScreen.tsx         # actualizador de tarifas (cap. 6)
+│   ├── tariff-admin/
+│   │   └── TariffAdminScreen.tsx         # actualizador de tarifas (cap. 6)
+│   └── excel-export/
+│       ├── generateQuotesWorkbook.ts     # genera el .xlsx con exceljs (cap. 7)
+│       ├── sanitizeExcelCellValue.ts     # protección Formula Injection (cap. 7)
+│       └── ExcelExportScreen.tsx         # lista acumulada + descarga (cap. 7)
 ├── context/                              # AgentSessionContext (sesión del agente)
 └── test/setup.ts
 api/
@@ -100,15 +104,17 @@ api/
 
 ### Métricas
 
-_(actualizado en cada capítulo; refleja el estado a fecha del capítulo 6 de 8)_
+_(actualizado en cada capítulo; refleja el estado a fecha del capítulo 7 de 8)_
 
 | Métrica | Valor |
 |---|---|
-| 🧪 Tests | 201 pasados |
-| 📈 Cobertura | 100% funciones, 99,4% líneas/sentencias, 98,7% ramas (umbral: 100/80/80/80) |
+| 🧪 Tests | 248 pasados |
+| 📈 Cobertura | 100% funciones, 98,6% líneas, 97,5% ramas (umbral: 100/80/80/80) |
 | 🧹 Lint | 0 errores, 0 warnings (`oxlint`) |
-| 📦 Bundle JS | 219,5 KB (67,9 KB gzip) |
-| 🎨 Bundle CSS | 12,8 KB (3,3 KB gzip) |
+| 🔒 Vulnerabilidades | 0 (`pnpm audit`) |
+| 📦 Bundle JS (inicial) | 229,4 KB (70,8 KB gzip) |
+| 📦 Bundle `exceljs` (diferido) | 929,6 KB (256,4 KB gzip) — solo se carga al exportar, no en la carga inicial |
+| 🎨 Bundle CSS | 13,0 KB (3,4 KB gzip) |
 | 🎭 E2E | fuera del núcleo v1 (roadmap, ver README §Roadmap) |
 - Build de producción (`tsc -b && vite build`) correcto, incluyendo el proyecto `api/`.
 
@@ -120,12 +126,12 @@ _(actualizado en cada capítulo; refleja el estado a fecha del capítulo 6 de 8)
 ✅ pnpm build            → build de producción correcto (incluye api/)
 ✅ pnpm test:run          → todos los tests en verde
 ✅ pnpm test:coverage      → umbrales superados (100% funciones, 80%+ resto)
-✅ Probado en navegador real → capítulos 4, 5 y 6 verificados interactuando con la app
+✅ Probado en navegador real → capítulos 4, 5, 6 y 7 verificados interactuando con la app
 ✅ Actualizador de tarifas con efecto real en los cálculos (cap. 6)
+✅ Exportación a Excel real, con protección Formula Injection (cap. 7)
 
 ⬜ Despliegue en Vercel
 ⬜ Usuario y contraseña de prueba documentados (obligatorio, hay login)
-⬜ Exportación a Excel (capítulo 7)
 ⬜ Slides
 ⬜ Vídeo
 ⬜ Deuda técnica conocida resuelta (ver CLAUDE.md) — opcional, no bloquea la entrega

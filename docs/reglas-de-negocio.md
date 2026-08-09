@@ -164,4 +164,8 @@ Response 401: PIN incorrecto o agente inexistente (mismo mensaje para ambos caso
 
 ## 8. Exportación a Excel (nuevo en v1)
 
-Cada cotización generada se puede añadir a una exportación `.xlsx` con, al menos: agente, fecha, modalidad, edad, descuentos aplicados, extras, total.
+- Cada cotización con un cálculo válido se puede añadir explícitamente (botón "Añadir a exportación", no automático) a una lista acumulada en `localStorage` — solo se pierde si se borran los datos del navegador o se usa otro ordenador/perfil (limitación conocida y aceptada de una app sin backend; consolidar entre terminales es manual, fuera de la app).
+- Campos por cotización: **agente**, fecha, **nombre del abonado**, **email**, edad, modalidad, descuentos aplicados, extras, desglose de `monthly_premium` si aplica, total.
+- Sin campo de sexo ni de fecha de alta — deliberadamente fuera de alcance, no se añaden formularios nuevos al capítulo 4 ya cerrado.
+- La exportación genera un único `.xlsx` con una fila por cotización acumulada (no un archivo por cotización), usando `exceljs` (no `xlsx`/SheetJS: vulnerabilidades conocidas sin parche disponible vía npm — Módulo 9).
+- Protección contra *Formula/CSV Injection*: cualquier texto libre (nombre, email) que empiece por `=`, `+`, `-` o `@` se neutraliza antes de escribirlo en una celda (Módulo 9, `docs/analisis-curricular.md`).

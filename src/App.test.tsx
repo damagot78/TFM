@@ -72,4 +72,19 @@ describe('App', () => {
     expect(screen.getByText('Datos del abonado')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Actualizador de tarifas' })).not.toBeInTheDocument()
   })
+
+  it('el enlace "Exportar" de la cabecera muestra la pantalla de exportación a Excel', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ valid: true, agentName: 'Agente 1' }) }),
+    )
+
+    render(<App />)
+    identify()
+    await waitFor(() => expect(screen.getByText('Agente 1')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Exportar' }))
+
+    expect(screen.getByRole('heading', { name: 'Exportar cotizaciones' })).toBeInTheDocument()
+  })
 })
