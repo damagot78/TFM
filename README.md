@@ -104,7 +104,7 @@ api/
 
 ### Métricas
 
-_(actualizado en cada capítulo; refleja el estado a fecha del capítulo 7 de 8)_
+_(actualizado en cada capítulo; refleja el estado a fecha del capítulo 8 de 8, en curso — despliegue hecho, slides/vídeo pendientes)_
 
 | Métrica | Valor |
 |---|---|
@@ -130,8 +130,8 @@ _(actualizado en cada capítulo; refleja el estado a fecha del capítulo 7 de 8)
 ✅ Actualizador de tarifas con efecto real en los cálculos (cap. 6)
 ✅ Exportación a Excel real, con protección Formula Injection (cap. 7)
 
-⬜ Despliegue en Vercel
-⬜ Usuario y contraseña de prueba documentados (obligatorio, hay login)
+✅ Despliegue en Vercel
+✅ Usuario y contraseña de prueba documentados (obligatorio, hay login)
 ⬜ Slides
 ⬜ Vídeo
 ⬜ Deuda técnica conocida resuelta (ver CLAUDE.md) — opcional, no bloquea la entrega
@@ -141,8 +141,8 @@ _(actualizado en cada capítulo; refleja el estado a fecha del capítulo 7 de 8)
 
 TDD (red-green-refactor) · Scope Rule · patrón Result en vez de excepciones para errores de negocio · funciones puras y pequeñas, una responsabilidad cada una · seguridad server-side para datos sensibles (PIN nunca en cliente) · umbrales de cobertura exigidos automáticamente · documentación como código, versionada junto al proyecto (`docs/reglas-de-negocio.md`, `docs/guion-tfm.md`) · desarrollo dirigido por IA con dirección explícita del autor, capítulo a capítulo.
 
-- Despliegue: pendiente (previsto en Vercel) — capítulo 8.
-- ⚠️ **Usuario y contraseña de prueba: pendiente.** Requisito obligatorio del TFM al tener login (identificación de personal por PIN desde el capítulo 5). No se puede rellenar hasta que exista un despliegue real con un PIN configurado para pruebas — capítulo 8.
+- **Despliegue:** [tfm-two.vercel.app](https://tfm-two.vercel.app) (Vercel) — capítulo 8.
+- **Usuario y contraseña de prueba:** Agente → `Agente 1`, PIN → `1234`. Este PIN es un **valor de demostración público para la evaluación del TFM**, distinto del que se usaría en un entorno real — configurado explícitamente para este propósito en las variables de entorno de Vercel (`PIN_AGENT_1`), nunca en el código. El resto de agentes (`Agente 2`–`Agente 4`) usan PIN reales no publicados.
 - Slides: pendiente.
 - Vídeo: pendiente.
 
