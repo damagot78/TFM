@@ -5,6 +5,7 @@ import { QuoteForm } from './QuoteForm'
 
 afterEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
 })
 
 describe('QuoteForm (integración)', () => {
@@ -61,14 +62,25 @@ describe('QuoteForm (integración)', () => {
     expect(stored[0]).toMatchObject({ agentName: 'Agente 1', modalityName: 'Golf Son Muntaner (SM)', total: 2524.5 })
   })
 
-  it('editar la cotización tras añadirla oculta la confirmación anterior', () => {
+  it('tras exportar con éxito, el formulario queda vacío para la siguiente cotización', () => {
+    render(<QuoteForm agentName="Agente 1" />)
+
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Juan Pérez' } })
+    fireEvent.change(screen.getByLabelText('Modalidad'), { target: { value: 'sm' } })
+    fireEvent.click(screen.getByRole('button', { name: /Añadir a exportación/ }))
+
+    expect(screen.getByLabelText('Nombre')).toHaveValue('')
+    expect(screen.getByLabelText('Modalidad')).toHaveValue('')
+  })
+
+  it('empezar una cotización nueva tras exportar oculta la confirmación anterior', () => {
     render(<QuoteForm agentName="Agente 1" />)
 
     fireEvent.change(screen.getByLabelText('Modalidad'), { target: { value: 'sm' } })
     fireEvent.click(screen.getByRole('button', { name: /Añadir a exportación/ }))
     expect(screen.getByRole('status')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByLabelText('Lunes a Viernes (15%)'))
+    fireEvent.change(screen.getByLabelText('Modalidad'), { target: { value: 'sq' } })
 
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })

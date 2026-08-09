@@ -136,4 +136,19 @@ describe('QuoteSummary', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('exportación')
   })
+
+  it('muestra la confirmación aunque ya no haya cotización exportable (formulario reiniciado tras exportar)', () => {
+    render(
+      <QuoteSummary
+        quote={{ kind: 'none' }}
+        extras={EMPTY_EXTRAS}
+        grandTotal={0}
+        canExport={false}
+        exportedMessageVisible
+      />,
+    )
+
+    expect(screen.getByRole('status')).toHaveTextContent('exportación')
+    expect(screen.queryByRole('button', { name: /Añadir a exportación/ })).not.toBeInTheDocument()
+  })
 })

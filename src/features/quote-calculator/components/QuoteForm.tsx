@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ExportedQuote } from '../../../shared/types/exportedQuote'
 import { appendExportedQuote } from '../../../shared/utils/exportedQuotesRepository'
 import { buildExportedQuote } from '../buildExportedQuote'
@@ -21,12 +21,25 @@ export function QuoteForm({ agentName }: QuoteFormProps) {
 
   const exportableQuote = buildExportedQuote(form, agentName)
 
+  // resetDraft() (más abajo) también cambia form.quote/extras/grandTotal al
+  // vaciar el formulario tras exportar, lo que dispararía este mismo efecto
+  // y ocultaría el mensaje de confirmación en el mismo instante en que se
+  // muestra. Esta bandera distingue ese cambio (causado por nosotros mismos)
+  // de que el agente empiece de verdad una cotización nueva.
+  const skipNextHideRef = useRef(false)
+
   useEffect(() => {
+    if (skipNextHideRef.current) {
+      skipNextHideRef.current = false
+      return
+    }
     setExportedMessageVisible(false)
   }, [form.quote, form.extras, form.grandTotal])
 
   function handleExport(quote: ExportedQuote) {
     appendExportedQuote(quote)
+    skipNextHideRef.current = true
+    form.resetDraft()
     setExportedMessageVisible(true)
   }
 

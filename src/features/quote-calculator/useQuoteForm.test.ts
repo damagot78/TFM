@@ -1,10 +1,12 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { TARIFF_OVERRIDES_STORAGE_KEY } from '../../shared/utils/tariffOverridesRepository'
+import { loadQuoteDraft, saveQuoteDraft } from './quoteDraftRepository'
 import { useQuoteForm } from './useQuoteForm'
 
 afterEach(() => {
   localStorage.clear()
+  sessionStorage.clear()
 })
 
 describe('useQuoteForm', () => {
@@ -182,5 +184,51 @@ describe('useQuoteForm', () => {
     act(() => result.current.setModalityId('sm'))
 
     expect(result.current.grandTotal).toBe(4500)
+  })
+
+  it('al montar con un borrador guardado en sessionStorage, los campos iniciales lo reflejan', () => {
+    saveQuoteDraft({
+      subscriberName: 'Juan Pérez',
+      birthDate: '',
+      email: '',
+      phone: '',
+      modalityId: 'sm',
+      monthlyStartDate: '',
+      monthlyMonths: 1,
+      monthlyManualChoices: {},
+      discountIds: ['week'],
+      referralAmount: '',
+      extraIds: [],
+    })
+
+    const { result } = renderHook(() => useQuoteForm())
+
+    expect(result.current.subscriberName).toBe('Juan Pérez')
+    expect(result.current.modalityId).toBe('sm')
+    expect(result.current.discountIds).toEqual(['week'])
+  })
+
+  it('cambiar un campo persiste el borrador actualizado en sessionStorage', () => {
+    const { result } = renderHook(() => useQuoteForm())
+
+    act(() => result.current.setSubscriberName('Juan Pérez'))
+    act(() => result.current.setModalityId('sm'))
+
+    expect(loadQuoteDraft()).toMatchObject({ subscriberName: 'Juan Pérez', modalityId: 'sm' })
+  })
+
+  it('resetDraft() vacía los campos en memoria y borra el borrador de sessionStorage', () => {
+    const { result } = renderHook(() => useQuoteForm())
+
+    act(() => result.current.setSubscriberName('Juan Pérez'))
+    act(() => result.current.setModalityId('sm'))
+    act(() => result.current.toggleDiscount('week'))
+
+    act(() => result.current.resetDraft())
+
+    expect(result.current.subscriberName).toBe('')
+    expect(result.current.modalityId).toBe('')
+    expect(result.current.discountIds).toEqual([])
+    expect(loadQuoteDraft()).toMatchObject({ subscriberName: '', modalityId: '', discountIds: [] })
   })
 })

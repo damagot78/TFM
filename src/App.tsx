@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AgentSessionProvider } from './context/AgentSessionContext'
 import { useAgentSession } from './context/useAgentSession'
 import { QuoteForm } from './features/quote-calculator/components/QuoteForm'
+import { clearQuoteDraft } from './features/quote-calculator/quoteDraftRepository'
 import { AgentIdentificationScreen } from './features/staff-identification/AgentIdentificationScreen'
 import { TariffAdminScreen } from './features/tariff-admin/TariffAdminScreen'
 import { ExcelExportScreen } from './features/excel-export/ExcelExportScreen'
@@ -14,6 +15,15 @@ function AppContent() {
 
   if (!agentName) {
     return <AgentIdentificationScreen onIdentified={identify} />
+  }
+
+  // El borrador de cotización vive en sessionStorage para sobrevivir a un
+  // cambio de pestaña; hay que borrarlo explícitamente al cerrar sesión para
+  // que el siguiente agente que se identifique en la misma pestaña no vea
+  // datos de un cliente ajeno.
+  function handleSignOut() {
+    clearQuoteDraft()
+    signOut()
   }
 
   return (
@@ -47,7 +57,7 @@ function AppContent() {
         </div>
         <div className="flex items-center gap-3 text-sm text-gray-600">
           <span>{agentName}</span>
-          <button type="button" onClick={signOut} className="text-gray-500 underline hover:text-gray-700">
+          <button type="button" onClick={handleSignOut} className="text-gray-500 underline hover:text-gray-700">
             Cerrar sesión
           </button>
         </div>

@@ -87,4 +87,43 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: 'Exportar cotizaciones' })).toBeInTheDocument()
   })
+
+  it('cambiar de pestaña y volver a Calculadora conserva los datos introducidos (regresión)', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ valid: true, agentName: 'Agente 1' }) }),
+    )
+
+    render(<App />)
+    identify()
+    await waitFor(() => expect(screen.getByText('Agente 1')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Prueba Reset Bug' } })
+    fireEvent.change(screen.getByLabelText('Modalidad'), { target: { value: 'sm' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tarifas' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Calculadora' }))
+
+    expect(screen.getByLabelText('Nombre')).toHaveValue('Prueba Reset Bug')
+    expect(screen.getByLabelText('Modalidad')).toHaveValue('sm')
+  })
+
+  it('"Cerrar sesión" borra el borrador de cotización, para que el siguiente agente no vea datos ajenos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({ ok: true, json: () => Promise.resolve({ valid: true, agentName: 'Agente 1' }) }),
+    )
+
+    render(<App />)
+    identify()
+    await waitFor(() => expect(screen.getByText('Agente 1')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Prueba Reset Bug' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+    identify()
+    await waitFor(() => expect(screen.getByText('Agente 1')).toBeInTheDocument())
+
+    expect(screen.getByLabelText('Nombre')).toHaveValue('')
+  })
 })

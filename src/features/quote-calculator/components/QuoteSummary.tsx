@@ -109,15 +109,17 @@ export function QuoteSummary({
         <span>{formatEuros(grandTotal)}</span>
       </div>
 
-      {canExport && (
+      {(canExport || exportedMessageVisible) && (
         <div className="mt-4 space-y-2 border-t border-gray-200 pt-3">
-          <button
-            type="button"
-            onClick={onExport}
-            className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white"
-          >
-            Añadir a exportación
-          </button>
+          {canExport && (
+            <button
+              type="button"
+              onClick={onExport}
+              className="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white"
+            >
+              Añadir a exportación
+            </button>
+          )}
           {exportedMessageVisible && (
             <p role="status" className="text-sm text-green-700">
               Cotización añadida a la exportación.
