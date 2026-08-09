@@ -108,11 +108,11 @@ _(actualizado en cada capítulo; refleja el estado a fecha del capítulo 8 de 8,
 
 | Métrica | Valor |
 |---|---|
-| 🧪 Tests | 248 pasados |
-| 📈 Cobertura | 100% funciones, 98,6% líneas, 97,5% ramas (umbral: 100/80/80/80) |
+| 🧪 Tests | 266 pasados |
+| 📈 Cobertura | 100% funciones, 98,8% líneas, 97,7% ramas (umbral: 100/80/80/80) |
 | 🧹 Lint | 0 errores, 0 warnings (`oxlint`) |
 | 🔒 Vulnerabilidades | 0 (`pnpm audit`) |
-| 📦 Bundle JS (inicial) | 229,4 KB (70,8 KB gzip) |
+| 📦 Bundle JS (inicial) | 231,7 KB (71,4 KB gzip) |
 | 📦 Bundle `exceljs` (diferido) | 929,6 KB (256,4 KB gzip) — solo se carga al exportar, no en la carga inicial |
 | 🎨 Bundle CSS | 13,0 KB (3,4 KB gzip) |
 | 🎭 E2E | fuera del núcleo v1 (roadmap, ver README §Roadmap) |
