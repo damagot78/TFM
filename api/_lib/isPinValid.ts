@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { AGENTS } from '../../src/shared/constants/agents'
+import { AGENTS } from '../../src/shared/constants/agents.js'
 
 /** Valor de relleno con la misma longitud que un PIN real, para comparar en tiempo constante aunque el agente no exista. */
 const DUMMY_PIN = '0000'

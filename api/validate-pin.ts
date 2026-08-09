@@ -1,4 +1,4 @@
-import { AGENTS } from '../src/shared/constants/agents'
+import { AGENTS } from '../src/shared/constants/agents.js'
 import { isPinValid } from './_lib/isPinValid'
 import { parseValidatePinPayload } from './_lib/parseValidatePinPayload'
 
