@@ -25,7 +25,7 @@ Una calculadora guiada y explicada: no solo devuelve el importe final, también 
 
 ### Roadmap más allá del v1
 
-Fuera del núcleo v1, pero contempladas como extensión si el tiempo lo permite (orden de prioridad; se recorta desde el final si el plazo aprieta):
+Con el núcleo v1 ya construido, esta es la dirección natural de ampliación (orden de prioridad):
 
 1. Modos de pago fraccionado/temporal para las modalidades `Standard`/`Premium`.
 2. Firma digital del abonado.

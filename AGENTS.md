@@ -70,7 +70,7 @@ Nunca validar el PIN en el cliente. Siempre a través de `api/validate-pin.ts`, 
 7. Exportación a Excel.
 8. Quality gates, documentación final, despliegue, slides, vídeo.
 
-**Roadmap adicional (solo si sobra tiempo tras el núcleo v1, en este orden de prioridad — recortar desde el final si el plazo aprieta):**
+**Roadmap adicional (hacia dónde se amplía el núcleo v1 ya construido, en este orden de prioridad):**
 
 9. Modos de pago fraccionado/temporal (extensión del motor de cuota ya construido).
 10. Firma digital (canvas táctil).

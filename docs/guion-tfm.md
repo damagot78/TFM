@@ -45,7 +45,7 @@ Con el plazo real de entrega y siendo mi primer proyecto de programación, defin
 
 **Incluido en v1:** motor de cuota + cascada de descuentos + validación de edad + extras con exclusividad de grupo, un solo modo de pago (anual), solo español, identificación de personal por PIN, exportación a Excel, actualizador de precios.
 
-**Fuera de v1, como roadmap priorizado** (se añadiría en este orden si sobra tiempo, se recorta desde el final si no): pago fraccionado/temporal → firma digital → multi-idioma → PDF imprimible → multi-abonado.
+**Con el núcleo v1 construido, el roadmap de ampliación natural es** (en este orden de prioridad): pago fraccionado/temporal → firma digital → multi-idioma → PDF imprimible → multi-abonado.
 
 *Cómo contarlo en el vídeo:* esto es una decisión de **priorización de producto**, no una limitación técnica — cada una de esas funcionalidades es viable, pero construirlas con tests y buena arquitectura desde cero tiene un coste real, y prefería entregar un núcleo completo y bien hecho antes que muchas funcionalidades a medias. Es una decisión que se puede defender con criterio de ingeniería (MoSCoW / priorización de requisitos, Módulo 1).
 
