@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import logoUrl from './assets/Logo_app.svg'
 import { AgentSessionProvider } from './context/AgentSessionContext'
 import { useAgentSession } from './context/useAgentSession'
 import { QuoteForm } from './features/quote-calculator/components/QuoteForm'
@@ -8,6 +9,15 @@ import { TariffAdminScreen } from './features/tariff-admin/TariffAdminScreen'
 import { ExcelExportScreen } from './features/excel-export/ExcelExportScreen'
 
 type View = 'quote' | 'tariffs' | 'export'
+
+function BrandHeader() {
+  return (
+    <div className="flex items-center gap-3 bg-[#007A32] px-6 py-2">
+      <img src={logoUrl} alt="Arabella Golf Mallorca" className="h-10 w-auto" />
+      <span className="text-sm font-medium text-white">Arabella Golf Mallorca</span>
+    </div>
+  )
+}
 
 function AppContent() {
   const { agentName, identify, signOut } = useAgentSession()
@@ -28,6 +38,7 @@ function AppContent() {
 
   return (
     <main className="min-h-screen bg-gray-50">
+      <BrandHeader />
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
         <div className="flex items-center gap-6">
           <h1 className="text-xl font-semibold text-gray-900">Calculadora de Cuotas — Arabella Golf Mallorca</h1>
