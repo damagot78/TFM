@@ -1,6 +1,6 @@
 import { AGENTS } from '../src/shared/constants/agents.js'
-import { isPinValid } from './_lib/isPinValid'
-import { parseValidatePinPayload } from './_lib/parseValidatePinPayload'
+import { isPinValid } from './_lib/isPinValid.js'
+import { parseValidatePinPayload } from './_lib/parseValidatePinPayload.js'
 
 const GENERIC_INVALID_MESSAGE = 'PIN inválido'
 
