@@ -1,4 +1,4 @@
-import type { Agent } from '../types/staff'
+import type { Agent } from '../types/staff.js'
 
 /**
  * Lista fija de agentes (nombres de marcador de posición — sustituir por el

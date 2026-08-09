@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { isPinValid } from './isPinValid'
+import { isPinValid } from './isPinValid.js'
 
 afterEach(() => {
   vi.unstubAllEnvs()

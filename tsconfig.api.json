@@ -6,10 +6,9 @@
     "types": ["node"],
     "skipLibCheck": true,
 
-    /* Bundler mode */
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
+    /* Node runtime nativo (sin bundler): exige extensiones .js explícitas en
+       los imports relativos, igual que el loader ESM de Node en producción */
+    "module": "nodenext",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,

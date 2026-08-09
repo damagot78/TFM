@@ -15,6 +15,8 @@ function jsonResponse(status: number, body: unknown, extraHeaders?: Record<strin
  */
 export async function POST(request: Request): Promise<Response> {
   try {
+    // Inalcanzable en Vercel hoy (el enrutado por export nombrado ya corta antes de llamar
+    // a esta función), pero se mantiene como salvaguarda si cambia el runtime o la plataforma.
     if (request.method !== 'POST') {
       return jsonResponse(405, { error: 'Método no permitido' }, { Allow: 'POST' })
     }

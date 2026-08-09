@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { POST as handler } from './validate-pin'
+import { POST as handler } from './validate-pin.js'
 
 function postRequest(body: unknown): Request {
   return new Request('http://localhost/api/validate-pin', {

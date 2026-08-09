@@ -1,4 +1,17 @@
 {
+  /* Vercel ignora "references" y solo tipa con los compilerOptions de este
+     archivo raíz — deben reflejar los de tsconfig.api.json. `tsc -b` los
+     ignora (sin "include" aquí), así que no afectan a los sub-proyectos. */
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "module": "nodenext",
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+    "noEmit": true
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },

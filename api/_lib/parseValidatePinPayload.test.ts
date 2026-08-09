@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseValidatePinPayload } from './parseValidatePinPayload'
+import { parseValidatePinPayload } from './parseValidatePinPayload.js'
 
 describe('parseValidatePinPayload', () => {
   it('acepta un payload válido: agentId conocido y PIN de 4 dígitos', () => {
