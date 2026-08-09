@@ -13,7 +13,7 @@ function jsonResponse(status: number, body: unknown, extraHeaders?: Record<strin
  * el fallo fue un PIN incorrecto o un agente inexistente (mismo 401, mismo
  * mensaje). Especificación completa en `docs/reglas-de-negocio.md` §6.
  */
-export default async function handler(request: Request): Promise<Response> {
+export async function POST(request: Request): Promise<Response> {
   try {
     if (request.method !== 'POST') {
       return jsonResponse(405, { error: 'Método no permitido' }, { Allow: 'POST' })
