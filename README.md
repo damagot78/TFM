@@ -132,7 +132,7 @@ _(actualizado en cada capítulo; refleja el estado a fecha del capítulo 8 de 8,
 
 ✅ Despliegue en Vercel
 ✅ Usuario y contraseña de prueba documentados (obligatorio, hay login)
-⬜ Slides
+✅ Slides
 ⬜ Vídeo
 ⬜ Deuda técnica conocida resuelta (ver CLAUDE.md) — opcional, no bloquea la entrega
 ```
@@ -143,7 +143,7 @@ TDD (red-green-refactor) · Scope Rule · patrón Result en vez de excepciones p
 
 - **Despliegue:** [tfm-two.vercel.app](https://tfm-two.vercel.app) (Vercel) — capítulo 8.
 - **Usuario y contraseña de prueba:** Agente → `Agente 1`, PIN → `1234`. Este PIN es un **valor de demostración público para la evaluación del TFM**, distinto del que se usaría en un entorno real — configurado explícitamente para este propósito en las variables de entorno de Vercel (`PIN_AGENT_1`), nunca en el código. El resto de agentes (`Agente 2`–`Agente 4`) usan PIN reales no publicados.
-- Slides: pendiente.
+- **Slides:** [Presentación TFM](https://docs.google.com/presentation/d/1mgIrSLH6pDcLuuZcaofNDCmY1VYsS7Ln/edit?usp=share_link&ouid=116977672051665679054&rtpof=true&sd=true) (Google Slides, acceso público sin login).
 - Vídeo: pendiente.
 
 ## ⚠️ Nota sobre seguridad de la identificación de personal
