@@ -44,6 +44,35 @@ La interfaz reutiliza un diseño ya validado con uso real (secciones: datos del 
 - Vitest + Testing Library (tests unitarios y de caracterización)
 - Una única función serverless (`api/validate-pin.ts`, en Vercel) para validar el PIN de personal en servidor — el resto de la aplicación es 100% cliente (localStorage)
 
+```
+┌─────────────────────────────┐
+│         USUARIO              │
+│      Navegador web           │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌─────────────────────────────┐
+│  React 19 + TypeScript       │
+│  + Tailwind CSS v4           │
+│  (construido con Vite)       │
+│                               │
+│  Cálculo, formulario, tarifas│
+│  y exportación a Excel — todo│
+│  100% cliente, sin servidor  │
+└──────────────┬───────────────┘
+               │
+     única llamada al servidor:
+        POST /api/validate-pin
+               │
+               ▼
+┌─────────────────────────────┐
+│  Función serverless (Vercel) │
+│  Comprueba el PIN — la única │
+│  lógica que debe ejecutarse  │
+│  en servidor, no en cliente  │
+└─────────────────────────────┘
+```
+
 ## Metodología de desarrollo
 
 Proyecto construido desde cero aplicando lo aprendido en el máster:
